@@ -52,10 +52,11 @@ class Client:
             transactions.append(tx)
         return transactions
 
-    def post_to_tangle(self, data):
+    def post_to_tangle(self, data, verbose=False):
         """Posts data to the tangle to a randomly generated address
 
         :param data: Data to be stored on the tangle
+        :param verbose: Prints out transaction process if True
         """
 
         # Get an address to send data
@@ -65,8 +66,10 @@ class Client:
 
         # Monitor how long the transaction takes
         start = time.time()
-        print("Transaction Initialised...")
-        print("Sending to: ", address)
+
+        if verbose:
+            print("Transaction Initialised...")
+            print("Sending to: ", address)
 
         # Posts data to the tangle
         self.api.send_transfer(
@@ -81,8 +84,10 @@ class Client:
             ],
         )
 
-        end = time.time()
-        print("Transaction complete, elapsed time: ", end - start, " seconds.")
+
+        if verbose:
+            end = time.time()
+            print("Transaction complete, elapsed time: ", end - start, " seconds.")
 
     def read_data(self, transaction_data):
         """Prints transaction data to the console
@@ -129,4 +134,23 @@ class Client:
         # Create data tuple
         transaction_data = (timestamp, sensor_data)
         return transaction_data
+
+    def get_latest_transaction_info(self, transactions):
+        """Gets the most recent data from the list of transactions
+
+        :param transactions: List of transaction objects
+        :return: The most recent transaction data from the list of transactions
+        """
+
+        tx_timestamps = []
+        tx_data = []
+        for tx in transactions:
+            info = self.get_transaction_info(tx)
+            tx_timestamps.append(info[0])
+            tx_data.append(info[1])
+
+        latest_reading = max(tx_timestamps)
+        data = tx_data[tx_timestamps.index(latest_reading)]
+        return data
+
 
