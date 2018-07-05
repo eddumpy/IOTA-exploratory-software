@@ -1,4 +1,4 @@
-from iota import Transaction, ProposedTransaction, TryteString
+from iota import Transaction, ProposedTransaction, TryteString, Tag
 import time
 import datetime
 
@@ -7,6 +7,8 @@ import datetime
 Methods in this class provide ways to:
   -  Store data on the tangle
   -  Query data on the tangle
+  -  Read data on the tangle
+  -  Sort data from the tangle
   -  Manipulate data from the tangle
 """
 
@@ -17,7 +19,7 @@ class Client:
         self.api = api
         self.tag = tag
 
-    def get_transactions_hashes(self, tag):
+    def get_transactions_hashes(self, tag: [Tag]) -> [TryteString]:
         """Gets transaction hashes of a given tag
 
         :param tag: Tag used by the device when sending transactions
@@ -28,36 +30,33 @@ class Client:
         txs_hashes = transactions_hashes['hashes']
         return txs_hashes
 
-    def get_transaction_trytes(self, txs_hashes):
-        """Gets the transaction trytes from a transaction hash, so it can be easily converted to
-        a Transaction object
-
-        :param txs_hashes: List of transaction hashes
-        :return: List of raw transaction trytes
-        """
-
-        result = self.api.get_trytes(txs_hashes)
-        tx_trytes = result['trytes']
-        return tx_trytes
-
-    def get_transactions(self, tx_trytes):
+    def get_transactions(self, tx_hashes: [TryteString]) -> [Transaction]:
         """Creates Transaction objects from the transaction trytes
 
-        :param tx_trytes: List of Transaction Trytes
+        :param tx_hashes: List of Transaction hashes
         :return: List of Transaction objects
         """
-        transactions = []
-        for tryte in tx_trytes:
-            tx = Transaction.from_tryte_string(tryte)
-            transactions.append(tx)
+
+        # The hashes are used to get the raw transaction trytes, which can then be converted to
+        # Transaction objects.
+        result = self.api.get_trytes(tx_hashes)
+        tx_trytes = result['trytes']
+
+        # Stores the Transaction objects in a list
+        transactions = [Transaction.from_tryte_string(tryte) for tryte in tx_trytes]
         return transactions
 
-    def post_to_tangle(self, data, verbose=False):
+    def post_to_tangle(self, data, verbose=False, tag=None):
         """Posts data to the tangle to a randomly generated address
 
+        :param tag: Uses default tag of device if none is given
         :param data: Data to be stored on the tangle
         :param verbose: Prints out transaction process if True
         """
+
+        # Uses the devices tag if none is given
+        if tag is None:
+            tag = self.tag
 
         # Get an address to send data
         result = self.api.get_new_addresses(count=1, security_level=2)
@@ -73,17 +72,16 @@ class Client:
 
         # Posts data to the tangle
         self.api.send_transfer(
-            depth=8,
+            depth=3,
             transfers=[
                 ProposedTransaction(
                     address=address,
                     value=0,
-                    tag=self.tag,
+                    tag=tag,
                     message=TryteString.from_string(str(data)),
                 ),
             ],
         )
-
 
         if verbose:
             end = time.time()

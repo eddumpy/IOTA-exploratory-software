@@ -1,6 +1,6 @@
 from iota import Tag
-from node import Node
-from client import Client
+from Classes.node import Node
+from Classes.client import Client
 import time
 import requests
 
@@ -22,15 +22,11 @@ def main():
         while True:
 
             # Code used to query tangle
-            transaction_hashes = client.get_transactions_hashes(sensor_tag)
-            transaction_trytes = client.get_transaction_trytes(transaction_hashes)
-            transactions = client.get_transactions(transaction_trytes)
+            transaction_hashes = client.get_transactions_hashes([sensor_tag])
+            transactions = client.get_transactions(transaction_hashes)
 
             # Gets transaction data from list of transaction objects
-            txs_data = []
-            for tx in transactions:
-                data = client.get_transaction_info(tx)
-                txs_data.append(data)
+            txs_data = [client.get_transaction_info(tx) for tx in transactions]
 
             # Sorts data, reads the last 10 transactions posted by client-v1
             sorted_data = client.sort_data(txs_data)
@@ -67,13 +63,12 @@ def main():
 # Connect to node and create api instance
 node = Node()
 api = node.create_api()
-node.test_node(api)
 
 # Tag of this device.
 monitor_tag = Tag(b'MONITOR')
 
-# list of tags of the device that this device is monitoring.
-sensor_tag = [Tag(b'SENSOR')]
+# Tag of the device that this device is monitoring i.e. the sensor
+sensor_tag = Tag(b'SENSOR')
 
 # Client library
 client = Client(api, monitor_tag)

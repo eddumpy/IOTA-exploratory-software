@@ -1,6 +1,6 @@
 from iota import Tag
-from node import Node
-from client import Client
+from Classes.node import Node
+from Classes.client import Client
 import time
 import random
 import requests

@@ -1,10 +1,10 @@
 from iota import Tag
-from node import Node
-from client import Client
+from Classes.node import Node
+from Classes.client import Client
 
 """Client-v3
 
-Device reads the data posted by client-v2, and prints a service update about the client-v1.
+Device reads the data posted by client-v2, and prints a service update about client-v1.
 """
 
 
@@ -12,8 +12,7 @@ def main():
 
     # Code used to query tangle
     transaction_hashes = client.get_transactions_hashes(monitor_tag)
-    transaction_trytes = client.get_transaction_trytes(transaction_hashes)
-    transactions = client.get_transactions(transaction_trytes)
+    transactions = client.get_transactions(transaction_hashes)
 
     # Gets transaction data from list of transaction objects
     txs_data = []
