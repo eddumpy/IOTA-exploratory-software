@@ -1,15 +1,14 @@
-from iota import Tag
-from Classes.node import Node
-from Classes.client import Client
-
-"""Client-v3
+"""status.py
 
 Device reads the data posted by client-v2, and prints a service update about client-v1.
 """
 
+from iota import Tag
+from Classes.node import Node
+from Classes.client import Client
+
 
 def main():
-
     # Code used to query tangle
     transaction_hashes = client.get_transactions_hashes(monitor_tag)
     transactions = client.get_transactions(transaction_hashes)
@@ -41,7 +40,6 @@ def main():
 # Connect to node and create api instance
 node = Node()
 api = node.create_api()
-node.test_node(api)
 
 # Tag of this device.
 monitor_tag = [Tag(b'MONITOR')]

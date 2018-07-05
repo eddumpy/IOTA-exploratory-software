@@ -1,3 +1,8 @@
+"""Testing script
+
+Used for testing pieces of code
+"""
+
 from iota import Tag
 from Classes.node import Node
 

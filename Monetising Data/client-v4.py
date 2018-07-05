@@ -1,10 +1,10 @@
-from Classes.node import Node
-
 """Client-v4
 
 Script will watch the balance of an IOTA address and then will turn on a light, depending on
 much IOTA was sent.
 """
+
+from Classes.node import Node
 
 
 # Seed of the device

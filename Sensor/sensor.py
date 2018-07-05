@@ -1,16 +1,16 @@
+
+"""sensor.py
+
+This python script represents a sensing IoT device. Every 2 minutes, the device will store a
+random number between 0-9 on to the tangle.
+"""
+
 from iota import Tag
 from Classes.node import Node
 from Classes.client import Client
 import time
 import random
 import requests
-
-
-"""Client-v1
-
-This python script represents a sensing IoT device. Every 2 minutes, the device will store a 
-random number between 0-9 on to the tangle.
-"""
 
 
 def main():
@@ -38,7 +38,6 @@ def main():
 # Connect to node and create api instance
 node = Node()
 api = node.create_api()
-node.test_node(api)
 
 # Tag of this device
 sensor_tag = Tag(b'SENSOR')
