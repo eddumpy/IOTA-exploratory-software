@@ -13,3 +13,7 @@ To clone this repository using the command line, navigate to the appropriate dir
 To run any of the scripts the Python IOTA API library, PYOTA, needs to be installed. Go to the directory where you cloned this repository and install PYOTA.
 
 ``pip install pyota``
+
+To find further installation instructions, they can be found at:
+
+https://github.com/iotaledger/iota.lib.py
