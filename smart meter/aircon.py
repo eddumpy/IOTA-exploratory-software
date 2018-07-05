@@ -4,34 +4,10 @@ Python script is used to post the state of a virtual air-conditioner to the tang
 data posted by the temperature sensor in temp.py.
 """
 
-from node import Node
-from client import Client
+from Classes.node import Node
+from Classes.client import Client
 from iota import Tag
-
-
-def get_temperature():
-    """Gets the temperature from the sensor.
-
-    :return: Returns the latest temperature reading by the temperature sensor.
-    """
-
-    # Uses the temperature tag to find data posted by the temperature sensor
-    temp_tag = [Tag(b"TEMPSENSOR999")]
-
-    # Gets the transaction hashes from the temperature tag
-    transaction_hashes = client.get_transactions_hashes(temp_tag)
-
-    # If no transaction hashes are found, a default temperature of 20 is assumed, otherwise the temperature is
-    # the reading from the tangle
-    if not transaction_hashes:
-        latest_temperature_reading = 20  # default temperature
-    else:
-        transaction_trytes = client.get_transaction_trytes(transaction_hashes)
-        transactions = client.get_transactions(transaction_trytes)
-        latest_temperature_reading = client.get_latest_transaction_info(transactions)
-
-    print("latest Temperature reading: " + latest_temperature_reading + " Degrees")
-    return int(latest_temperature_reading)
+from meter import Meter
 
 
 def main(state):
@@ -44,7 +20,8 @@ def main(state):
     while True:
 
         # Gets the current temperature
-        temperature = get_temperature()
+        temperature = meter.get_temperature()
+
 
         # If temperature is 30 or above the air conditioner needs to be turned on,
         # it turns off when the temperature reaches 20, any change in state is
@@ -76,6 +53,8 @@ api = node.create_api(seed=device_seed)
 # client object to query and post to tangle
 client = Client(api, device_tag)
 
-current_state = 0
+meter = Meter(client)
+
+current_state = 1
 if __name__ == '__main__':
     main(current_state)
