@@ -1,16 +1,15 @@
-"""status.py
+"""
+status.py
 
-Device reads the data posted by client-v2, and prints a service update about client-v1.
+Device reads the data posted by monitor.py, and prints a service update about client-v1.
 """
 
-from iota import Tag
-from Classes.node import Node
 from Classes.client import Client
 
 
-def main():
+def main(tags):
     # Code used to query tangle
-    transaction_hashes = client.get_transactions_hashes(monitor_tag)
+    transaction_hashes = client.get_transactions_hashes(tags)
     transactions = client.get_transactions(transaction_hashes)
 
     # Gets transaction data from list of transaction objects
@@ -37,15 +36,12 @@ def main():
         print("Device is working as normal.")
 
 
-# Connect to node and create api instance
-node = Node()
-api = node.create_api()
-
-# Tag of this device.
-monitor_tag = [Tag(b'MONITOR')]
-
 # Class used to query tangle data,
-client = Client(api, monitor_tag)
+client = Client(device_name="status1",
+                seed=b'FDUDNNKTWT9OJXMSXIYX9HUTTLCRJTW99UODHCBHAPQKSEBIOPKNCKNEBQKSWG9QTARTRKJXWDWXCW9FG',
+                subscribe_topic="monitor/data")
 
 if __name__ == '__main__':
-    main()
+    client.mqtt.find_data_streams()
+    device_tags = client.convert_tag_strings(client.mqtt.tags_found)
+    main(device_tags)

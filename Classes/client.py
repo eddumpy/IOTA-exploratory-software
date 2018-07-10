@@ -1,7 +1,3 @@
-from iota import Transaction, ProposedTransaction, TryteString, Tag
-import time
-import datetime
-
 """Client class:
 
 Methods in this class provide ways to:
@@ -12,12 +8,69 @@ Methods in this class provide ways to:
   -  Manipulate data from the tangle
 """
 
+import random
+import string
+
+from iota import Transaction, ProposedTransaction, TryteString, Tag
+from Classes.node import Node
+from Classes.mqtt import MQTT
+import time
+import datetime
+
 
 class Client:
 
-    def __init__(self, api, tag):
-        self.api = api
-        self.tag = tag
+    def __init__(self,
+                 device_name='',
+                 seed='',
+                 subscribe_topic='',
+                 publish_topic='',
+                 route_pow=True,
+                 iota_node='https://nodes.devnet.thetangle.org:443',
+                 pow_node='http://localhost:14265'):
+
+        # Describes the device function
+        self.device_name = device_name
+
+        # IOTA api, created through the Node class
+        self.api = Node(seed, iota_node, route_pow, pow_node).api
+
+        # Gets an Address for device
+        self.address = self.generate_address()
+
+        # Tag to classify current data stream
+        self.tag_string = self.generate_tag()
+        self.tag = Tag(self.tag_string)
+
+        # Defines the topics the device has subscribed or can publish too
+        self.subscribe_topic = subscribe_topic
+        self.publish_topic = publish_topic
+
+        # MQTT client to use with the Iota client
+        self.mqtt = MQTT(device_name=self.device_name,
+                         subscribe_topic=self.subscribe_topic,
+                         publish_topic=self.publish_topic)
+
+    def generate_tag(self, size=27, chars=string.ascii_uppercase + '9'):
+        """Generates a tag for a client
+
+        :param size: Max number of trytes
+        :param chars: Uppercase letters and the number 9
+        :return: A tag for a client to use
+        """
+
+        tag_string = ''.join(random.choice(chars) for _ in range(size))
+        return tag_string
+
+    def generate_address(self):
+        """Gets an address for the device
+
+        :return: Address of device
+        """
+        result = self.api.get_new_addresses(count=1, security_level=2)
+        addresses = result['addresses']
+        address = addresses[0]
+        return address
 
     def get_transactions_hashes(self, tag: [Tag]) -> [TryteString]:
         """Gets transaction hashes of a given tag
@@ -28,7 +81,13 @@ class Client:
 
         transactions_hashes = self.api.find_transactions(tags=tag)
         txs_hashes = transactions_hashes['hashes']
-        return txs_hashes
+
+        if not txs_hashes:
+            print("No Transactions found, waiting for transactions...")
+            time.sleep(60)
+            self.get_transactions_hashes(tag)
+        else:
+            return txs_hashes
 
     def get_transactions(self, tx_hashes: [TryteString]) -> [Transaction]:
         """Creates Transaction objects from the transaction trytes
@@ -58,24 +117,19 @@ class Client:
         if tag is None:
             tag = self.tag
 
-        # Get an address to send data
-        result = self.api.get_new_addresses(count=1, security_level=2)
-        addresses = result['addresses']
-        address = addresses[0]
-
         # Monitor how long the transaction takes
         start = time.time()
 
         if verbose:
             print("Transaction Initialised...")
-            print("Sending to: ", address)
+            print("Sending to: ", self.address)
 
         # Posts data to the tangle
         self.api.send_transfer(
             depth=3,
             transfers=[
                 ProposedTransaction(
-                    address=address,
+                    address=self.address,
                     value=0,
                     tag=tag,
                     message=TryteString.from_string(str(data)),
@@ -85,9 +139,10 @@ class Client:
 
         if verbose:
             end = time.time()
-            print("Transaction complete, elapsed time: ", end - start, " seconds.")
+            print("Transaction complete \nElapsed time: ", end - start, " seconds.")
 
-    def read_data(self, transaction_data):
+    @staticmethod
+    def read_data(transaction_data):
         """Prints transaction data to the console
 
         :param transaction_data: List of transaction data -> [(timestamp, message)]
@@ -99,7 +154,8 @@ class Client:
             time_of_transaction = value.strftime('%d/%m/%Y% %H:%M:%S')
             print(time_of_transaction, "Data: ", tx_data[1])
 
-    def sort_data(self, data, most_recent=True, count=10):
+    @staticmethod
+    def sort_data(data, most_recent=True, count=10):
         """Sorts data by the oldest to the newest transactions
 
         :param data: list of data -> [(timestamp, message)]
@@ -115,7 +171,8 @@ class Client:
         else:
             return data
 
-    def get_transaction_info(self, transaction):
+    @staticmethod
+    def get_transaction_info(transaction):
         """Gets the timestamp and message of a transaction
 
         :param transaction: Transaction object
@@ -151,4 +208,8 @@ class Client:
         data = tx_data[tx_timestamps.index(latest_reading)]
         return data
 
-
+    def convert_tag_strings(self, tags_found):
+        tags = []
+        for tag in tags_found:
+            tags.append(Tag(tag))
+        return tags

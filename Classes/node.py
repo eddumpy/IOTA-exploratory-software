@@ -1,28 +1,31 @@
+"""
+node class:
+
+Used to create an API instance to interact with the tangle
+Default URIs are provided, but can be changed if needed.
+
+Current set up connects to a public Iota devnet node and
+uses a local running node with no neighbours to provide the
+proof of work.
+"""
+
 import urllib3
 from iota import Iota
 from iota.adapter.wrappers import RoutingWrapper
 import requests
 
-"""Node class:
-
-Used to create an API instance to interact with the tangle
-Default URIs are provided, but can be changed if needed.
-
-Current set up connects to a public Iota devnet node and 
-uses a local running node with no neighbours to provide the
-proof of work.
-"""
-
 
 class Node:
 
-    def __init__(self, iota_node='https://nodes.devnet.thetangle.org:443', pow_node='http://localhost:14265'):
+    def __init__(self, seed, iota_node, route_pow, pow_node):
+        # Node variables
         self.iota_node = iota_node  # Public node
         self.pow_node = pow_node  # Local node to perform PoW
 
-        self.api = None  # Once the create api method is called, an API will be saved so it can be tested immediately
+        # Creates an Iota API
+        self.api = self.create_api(seed, route_pow)
 
-    def create_api(self, seed='', route_pow=True) -> Iota:
+    def create_api(self, seed, route_pow) -> Iota:
         """Creates an Iota object to interact with the tangle
 
         :param seed: The seed of the device, currently uses a random seed.
@@ -41,9 +44,7 @@ class Node:
                     )
             else:
                 self.api = Iota(self.iota_node, seed)
-                print("Made it before test")
                 self.test_node()
-
         except ConnectionRefusedError as e:
             print(e)
             print("Ensure all nodes are working correctly before connecting")

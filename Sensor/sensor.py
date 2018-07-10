@@ -1,13 +1,12 @@
-
-"""sensor.py
+"""
+sensor.py
 
 This python script represents a sensing IoT device. Every 2 minutes, the device will store a
 random number between 0-9 on to the tangle.
 """
 
-from iota import Tag
-from Classes.node import Node
 from Classes.client import Client
+
 import time
 import random
 import requests
@@ -15,18 +14,21 @@ import requests
 
 def main():
 
-    print("Device collecting data...")
-
     try:
+
         while True:
+
             # Generate random number as the data to store in the tangle and convert to Trytestring
             sensor_data = random.randint(0, 9)
 
             # Post data to tangle
             client.post_to_tangle(sensor_data)
 
-            # Wait 2 minutes for next data collection
-            time.sleep(120)
+            # Wait 1 minutes for next data collection
+            time.sleep(60)
+
+            # Publishes tag to message stream again for recently connected devices
+            client.mqtt.publish_data_stream(tag_string=client.tag_string)
 
     # Catches any connection errors when collecting data
     except requests.exceptions.ConnectionError:
@@ -35,15 +37,13 @@ def main():
         main()
 
 
-# Connect to node and create api instance
-node = Node()
-api = node.create_api()
-
-# Tag of this device
-sensor_tag = Tag(b'SENSOR')
-
-# Create a client object, and pass in api and tag of device
-client = Client(api, sensor_tag)
+# Create a client object with device seed, use a seed generator to get a seed.
+client = Client(device_name="Sensor1",
+                publish_topic="sensor/data",
+                seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY')
 
 if __name__ == '__main__':
+    print("Starting data stream, publishing tag to: ", client.publish_topic)
+    client.mqtt.publish_data_stream(tag_string=client.tag_string)
+    print("Device collecting data...")
     main()
