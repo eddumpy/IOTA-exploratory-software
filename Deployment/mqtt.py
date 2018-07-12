@@ -65,7 +65,8 @@ class MQTT:
             print("Reading from found data streams, from:\n", "\n".join(self.devices_found))
         else:
             if self.known_devices:
-                print("Searching for", " ".join([device for device in self.known_devices if device not in self.devices_found]))
+                print("Searching for",
+                      " ".join([device for device in self.known_devices if device not in self.devices_found]))
             else:
                 print("Searching for data streams, ", len(self.tags_found), " found")
             self.find_data_streams()

@@ -33,7 +33,6 @@ class Node:
         :return: An Iota object
         """
         try:
-
             if route_pow is True:
                 self.api = \
                     Iota(
@@ -45,20 +44,11 @@ class Node:
             else:
                 self.api = Iota(self.iota_node, seed)
                 self.test_node()
+            return self.api
+
         except ConnectionRefusedError as e:
             print(e)
             print("Ensure all nodes are working correctly before connecting")
-        except urllib3.exceptions.NewConnectionError as e:
-            print(e)
-            print("Ensure all nodes are working correctly before connecting")
-        except urllib3.exceptions.MaxRetryError as e:
-            print(e)
-            print("Ensure all nodes are working correctly before connecting")
-        except requests.exceptions.ConnectionError as e:
-            print(e)
-            print("Ensure all nodes are working correctly before connecting")
-
-        return self.api
 
     def test_node(self):
         """Tests the connection to the node and if it is synced
