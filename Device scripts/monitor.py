@@ -7,14 +7,17 @@ to the tangle. If the the average is above 6 it suggests something may be wrong 
 severity, anything less than 6 is considered normal so a 0 is posted.
 """
 
-from Classes.client import Client
+from Deployment.client import Client
+from Deployment.user_input import get_user_input
 import time
 import requests
+import sys
 
 
 def main(tags):
 
     try:
+
         while True:
 
             # Code used to query tangle
@@ -22,24 +25,17 @@ def main(tags):
             transactions = client.get_transactions(transaction_hashes)
 
             # Gets transaction data from list of transaction objects
-            txs_data = [client.get_transaction_info(tx) for tx in transactions]
-
-            # Sorts data, reads the last 10 transactions posted by client-v1
-            sorted_data = client.sort_data(txs_data)
-
-            monitor_data = []
-            for d in sorted_data:
-                monitor_data.append(int(d[1]))
+            txs_data = [int(client.get_transaction_data(tx)) for tx in transactions]
 
             # Calculates an average from last 10 transactions from client-v1
-            data_average = sum(monitor_data) / float(len(monitor_data))
+            data_average = sum(txs_data) / float(len(txs_data))
             print("Device value: ", data_average)
 
             # If the data average is above a certain threshold, a number between 0-2 will be posted
-            if data_average > 7:
+            if data_average >= 70:
                 device_status = 2
                 client.post_to_tangle(device_status)
-            elif 7 > data_average > 6:
+            elif 70 > data_average > 60:
                 device_status = 1
                 client.post_to_tangle(device_status)
             else:
@@ -50,7 +46,7 @@ def main(tags):
             time.sleep(180)
 
             # Publishes tag to message stream again for recently connected devices
-            client.mqtt.publish_data_stream(tag_string=client.tag_string)
+            client.mqtt.publish_data_stream(message=client.device_name + '/' + client.tag_string)
 
     # Catches any connection errors when collecting data
     except requests.exceptions.ConnectionError:
@@ -58,15 +54,21 @@ def main(tags):
         time.sleep(60)
         main(tags=tags)
 
+    except KeyboardInterrupt:
+        print("Exiting...")
+        client.mqtt.publish_data_stream(message='Exit')
+        sys.exit()
+
+
+device_name, device_list = get_user_input()
 
 # Create a client object with seed of device
-client = Client(device_name="monitor1",
+client = Client(device_name=device_name,
                 seed=b'BTPPLUVESQQYZCFYCDZVD9RXHAHTSCIBTMRVQCONZTKQMVLDPGY9HAOTH9NBPFANAEOFLEZIRNTZZVKQY',
                 subscribe_topic="sensor/data",
-                publish_topic="monitor/data")
+                publish_topic="monitor/data",
+                known_devices=device_list)
 
 if __name__ == '__main__':
-    client.mqtt.find_data_streams(number_of_streams=2)
-    device_tags = client.convert_tag_strings(client.mqtt.tags_found)
-    print("Monitoring sensor...")
-    main(tags=device_tags)
+    device_tags = client.find_devices()
+    main(device_tags)
