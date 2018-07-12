@@ -46,7 +46,7 @@ class MQTT:
         self.mqtt_client.connect("localhost", self.mqtt_port)
         self.mqtt_client.loop_start()
         self.mqtt_client.publish(self.publish_topic, message)
-        time.sleep(4)
+        time.sleep(2)
         self.mqtt_client.loop_stop()
 
     def find_data_streams(self):
@@ -55,21 +55,35 @@ class MQTT:
         """
 
         self.mqtt_client.connect("localhost", self.mqtt_port)
-        self.mqtt_client.loop_start()
-        self.mqtt_client.subscribe(self.subscribe_topic)
-        self.mqtt_client.on_message = self.on_message
-        time.sleep(4)
-        self.mqtt_client.loop_stop()
 
-        if len(self.tags_found) == self.number_of_streams:
-            print("Reading from found data streams, from:\n", "\n".join(self.devices_found))
+        found_all_streams = False
+
+        number_of_tags_found = 0
+
+        self.status()
+
+        while not found_all_streams:
+            self.mqtt_client.loop_start()
+            self.mqtt_client.subscribe(self.subscribe_topic)
+            self.mqtt_client.on_message = self.on_message
+            time.sleep(2)
+            self.mqtt_client.loop_stop()
+
+            if len(self.tags_found) > number_of_tags_found:
+                number_of_tags_found = len(self.tags_found)
+                if len(self.tags_found) == self.number_of_streams:
+                    print("Reading data streams from these devices:\n", " ".join(self.devices_found))
+                    found_all_streams = True
+                else:
+                    self.status()
+
+    def status(self):
+        if self.known_devices:
+            print("Searching for",
+                  " ".join([device for device in self.known_devices if device not in self.devices_found]))
+
         else:
-            if self.known_devices:
-                print("Searching for",
-                      " ".join([device for device in self.known_devices if device not in self.devices_found]))
-            else:
-                print("Searching for data streams, ", len(self.tags_found), " found")
-            self.find_data_streams()
+            print("Searching for data streams, ", len(self.tags_found), " found")
 
     def on_message(self, client, userdata, message):
 
