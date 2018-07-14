@@ -9,7 +9,6 @@ uses a local running node with no neighbours to provide the
 proof of work.
 """
 
-import urllib3
 from iota import Iota
 from iota.adapter.wrappers import RoutingWrapper
 import requests
@@ -18,6 +17,7 @@ import requests
 class Node:
 
     def __init__(self, seed, iota_node, route_pow, pow_node):
+
         # Node variables
         self.iota_node = iota_node  # Public node
         self.pow_node = pow_node  # Local node to perform PoW

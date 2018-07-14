@@ -11,8 +11,12 @@ import time
 
 class MQTT:
 
-    def __init__(self, device_name, broker, subscribe_topic, publish_topic, known_devices,
+    def __init__(self, device_name, device_tag, broker, subscribe_topics, publish_topics, known_devices,
                  number_of_streams):
+
+        # Name of device and its tag
+        self.device_name = device_name
+        self.device_tag = device_tag
 
         # MQTT broker, default broker is locally running
         self.broker = broker
@@ -22,90 +26,100 @@ class MQTT:
         self.mqtt_client = mqtt.Client(device_name)
 
         # MQTT topics
-        self.subscribe_topic = subscribe_topic
-        self.publish_topic = publish_topic
+        self.subscribe_topics = subscribe_topics
+        self.publish_topics = publish_topics
 
-        # Finds known devices
-        if known_devices is None:
-            self.known_devices = []
+        # Devices to connect to
+        self.known_devices = known_devices
+
+        # How many streams to look for
+        if not known_devices:
             self.number_of_streams = number_of_streams
         else:
-            self.known_devices = known_devices
             self.number_of_streams = len(known_devices)
 
         # Stores found tags and devices here, uses a set in case of multiple data streams
         self.tags_found = list()
         self.devices_found = list()
 
-    def publish_data_stream(self, message):
-        """Publishes messages to the objects publish_topic
+    def publish_data_stream(self):
+        """Publishes messages to the devices publish_topics
 
-        :param message: Message string
         """
 
-        self.mqtt_client.connect("localhost", self.mqtt_port)
+        self.mqtt_client.connect(self.broker, self.mqtt_port)
         self.mqtt_client.loop_start()
-        self.mqtt_client.publish(self.publish_topic, message)
-        time.sleep(2)
+        self.mqtt_client.publish(self.publish_topics[0], self.device_name)
+        self.mqtt_client.publish(self.publish_topics[1], self.device_tag)
+        time.sleep(10)
         self.mqtt_client.loop_stop()
 
-    def find_data_streams(self):
-        """Finds data streams for devices to read
+    def find_devices(self):
 
-        """
+        # Describes state of found devices
+        all_devices_found = False
 
-        self.mqtt_client.connect("localhost", self.mqtt_port)
-
-        found_all_streams = False
-
-        number_of_tags_found = 0
-
-        self.status()
-
-        while not found_all_streams:
+        while not all_devices_found:
+            self.mqtt_client.connect(self.broker, self.mqtt_port)
             self.mqtt_client.loop_start()
-            self.mqtt_client.subscribe(self.subscribe_topic)
+            self.mqtt_client.subscribe(self.subscribe_topics[0])
             self.mqtt_client.on_message = self.on_message
             time.sleep(2)
             self.mqtt_client.loop_stop()
 
-            if len(self.tags_found) > number_of_tags_found:
-                number_of_tags_found = len(self.tags_found)
-                if len(self.tags_found) == self.number_of_streams:
-                    print("Reading data streams from these devices:\n", " ".join(self.devices_found))
-                    found_all_streams = True
-                else:
-                    self.status()
+            if len(self.known_devices) >= self.number_of_streams:
+                all_devices_found = True
 
-    def status(self):
-        if self.known_devices:
-            print("Searching for",
-                  " ".join([device for device in self.known_devices if device not in self.devices_found]))
+    def find_data_streams(self):
+        """Finds data streams from known devices
 
-        else:
-            print("Searching for data streams, ", len(self.tags_found), " found")
+        """
+
+        # Finds devices for
+        if not self.known_devices:
+            self.find_devices()
+            self.subscribe_topics = [self.subscribe_topics[0] + device_name + '/' for device_name in self.known_devices]
+
+        # Variable to show how many tags have been found
+        number_of_tags_found = 0
+
+        for topic in self.subscribe_topics:
+
+            self.number_of_streams_found()
+
+            stream_found = False
+
+            while not stream_found:
+                self.mqtt_client.connect(self.broker, self.mqtt_port)
+                self.mqtt_client.loop_start()
+                self.mqtt_client.subscribe(topic)
+                self.mqtt_client.on_message = self.on_message
+                time.sleep(2)
+                self.mqtt_client.loop_stop()
+
+                if len(self.tags_found) > number_of_tags_found:
+                    number_of_tags_found = len(self.tags_found)
+                    stream_found = True
+
+        if len(self.tags_found) == self.number_of_streams:
+            print("Reading data streams from these devices: ", " ".join(self.devices_found))
+
+    def number_of_streams_found(self):
+        print("Searching for device tags for devices: ",
+              " ".join([device for device in self.known_devices if device not in self.devices_found]))
 
     def on_message(self, client, userdata, message):
 
         # Message from device
         device_message = str(message.payload.decode("utf-8"))
 
-        # Index of '/' to use to split string
-        i = device_message.find('/')
-        device_name, device_tag = device_message[:i], device_message[(i + 1):]
-
-        # If no name was given, default unknown device is given
-        if len(device_name) == 0:
-            device_name = "Unknown device"
-
-        if self.known_devices:
-            if device_name in self.known_devices:
-                self.tags_found.append(device_tag)
-                self.devices_found.append(device_name)
+        if len(device_message) == 27:
+            if device_message not in self.tags_found:
+                self.tags_found.append(device_message)
         else:
-            if len(self.tags_found) < self.number_of_streams:
-                self.tags_found.append(device_tag)
-                self.devices_found.append(device_name)
+            if device_message not in self.known_devices:
+                print("Added ", device_message, " to known devices")
+                self.known_devices.append(device_message)
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:

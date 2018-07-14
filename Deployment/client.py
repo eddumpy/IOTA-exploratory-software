@@ -13,8 +13,7 @@ Methods in this class provide ways to:
   -  Sort data from the tangle
   -  Manipulate data from the tangle
 """
-
-
+import iota
 from iota import Transaction, ProposedTransaction, TryteString, Tag
 from Deployment.node import Node
 from Deployment.mqtt import MQTT
@@ -29,23 +28,29 @@ class Client:
 
     def __init__(self,
                  # Device details
-                 device_name='',  # Device name-> String
-                 seed='',  # Seed of device, if empty random seed will be used -> String
+                 device_name,  # Device name -> String
+                 device_type,  # Device type -> String
+                 seed,  # Seed of device, if empty random seed will be used -> String
+                 known_devices,  # Specifies if you want to read from any known devices -> [String]
+                 reuse_address=True,  # If you want to reuse addresses
 
                  #  MQTT configuration
-                 subscribe_topic='',  # Subscribe topic for mqtt -> String
-                 publish_topic='',  # Publish topic for mqtt -> String
-                 known_devices=None,  # Specifies if you want to read from any known devices -> [String]
+                 read_from_device_type=None,  # Specifies which devices you wish to read from
                  number_of_streams=1,  # Specifies how many streams you wish to read from -> Int
                  mqtt_broker="localhost",  # broker for MQTT communication -> String
 
                  # Iota node configuration
                  route_pow=True,  # If you wish to route the PoW to a node -> Bool
-                 iota_node='https://nodes.devnet.thetangle.org:443',  # IOTA node to connect to -> String
-                 pow_node='http://localhost:14265'):  # PoW node -> String
+                 iota_node='https://nodes.devnet.thetangle.org:443',  # URI of IOTA node to connect to -> String
+                 pow_node='http://localhost:14265'):  # Uri of PoW node -> String
 
         # Name of device, if empty will be seen as 'unknown device'
         self.device_name = device_name
+        self.device_type = device_type
+
+        # Address info
+        self.reuse_address = reuse_address
+        self.address = ''
 
         # IOTA api, created through the Node class
         self.api = Node(seed, iota_node, route_pow, pow_node).api
@@ -54,38 +59,41 @@ class Client:
         self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
         self.tag = Tag(self.tag_string)
 
-        # Defines the topics the device has subscribed or can publish too
-        self.subscribe_topic = subscribe_topic
-        self.publish_topic = publish_topic
+        # Defines the publish and subscribe topics
+        if read_from_device_type is None:
+            self.subscribe_topics = []
+        else:
+            if not known_devices:
+                self.subscribe_topics = [read_from_device_type + '/']
+            else:
+                self.subscribe_topics = [read_from_device_type + '/' + device for device in known_devices]
+
+        self.publish_topics = [self.device_type + '/', self.device_type + '/' + self.device_name + '/']
 
         # MQTT client to use with the Iota client
         self.mqtt = MQTT(device_name=self.device_name,
+                         device_tag=self.tag_string,
                          broker=mqtt_broker,
-                         subscribe_topic=self.subscribe_topic,
-                         publish_topic=self.publish_topic,
+                         subscribe_topics=self.subscribe_topics,
+                         publish_topics=self.publish_topics,
                          known_devices=known_devices,
                          number_of_streams=number_of_streams)
 
-        # Message to be posted to topic
-        self.message = self.device_name + '/' + self.tag_string
-
         # Stores the most recent transaction timestamp
         self.most_recent_transaction = None
-
-        # Exit message used for mqtt communication if device goes offline
-        self.exit_message = "Exit"
 
         # Class used to encrypt and decrypt data
         self.crypto = Crypto()
 
     def generate_address(self):
-        """Gets a new unused address for each transaction
+        """Gets a new unused address for each transaction, with security level of 2
 
         :return: Address of device
         """
         result = self.api.get_new_addresses(count=None, security_level=2)
         addresses = result['addresses']
         address = addresses[0]
+        self.address = address
         return address
 
     def get_transactions_hashes(self, tags: [Tag]) -> [TryteString]:
@@ -128,53 +136,58 @@ class Client:
 
         return ordered_transactions
 
-    def post_to_tangle(self, data, verbose=False, tag=None):
+    def post_to_tangle(self, data, verbose=False):
         """Posts data to the tangle to a randomly generated address
 
-        :param tag: Uses default tag of device if none is given
         :param data: Data to be stored on the tangle
-        :param verbose: Prints out transaction process if True
+        :param verbose: Prints out the transaction process if True
         """
 
         # Encrypt data before being posted to tangle
-        encrypted_data = self.crypto.encrypt(plaintext=str(data).encode('utf-8'))
-
-        # Uses the devices tag if none is given
-        if tag is None:
-            tag = self.tag
+        encrypted_data = self.crypto.encrypt(data)
 
         # Monitor how long the transaction takes
         start = time.time()
 
-        # Generates a new unused address
-        address = self.generate_address()
+        # Gets an appropriate address for sending transaction
+        if self.reuse_address:
+            if self.address is '':
+                self.address = self.generate_address()  # Generates a new unused address
+        else:
+            self.address = self.generate_address()
 
         if verbose:
             print("Transaction Initialised...")
-            print("Sending to: ", address)
+            print("Sending to: ", self.address)
 
-        # Posts data to the tangle
-        self.api.send_transfer(
-            depth=3,
-            transfers=[
-                ProposedTransaction(
-                    address=address,
-                    value=0,
-                    tag=tag,
-                    message=TryteString.from_bytes(encrypted_data),
-                ),
-            ],
-        )
+        try:
+            # Posts data to the tangle
+            self.api.send_transfer(
+                depth=3,
+                transfers=[
+                    ProposedTransaction(
+                        address=self.address,
+                        value=0,
+                        tag=self.tag,
+                        message=TryteString.from_bytes(encrypted_data),
+                    ),
+                ],
+            )
 
-        if verbose:
-            end = time.time()
-            print("Transaction complete \nElapsed time: ", end - start, " seconds.")
+            if verbose:
+                end = time.time()
+                print("Transaction complete \nElapsed time: ", end - start, " seconds.")
 
-    def find_devices(self):
+        except iota.adapter.BadApiResponse:
+            print("Transaction failed, retrying...")
+            self.post_to_tangle(data)
+
+    def search_for_devices(self):
         """Finds devices to read data streams
 
         :return: The tags used to post data from found devices-> [Tags]
         """
+
         self.mqtt.find_data_streams()
         tags = [Tag(tag) for tag in self.mqtt.tags_found]
         for device in self.mqtt.devices_found:
@@ -223,6 +236,9 @@ class Client:
 
         # Decrypt data
         decrypted_data = self.crypto.decrypt(decoded_data)
-        raw_data = str(decrypted_data.decode())
 
-        return raw_data
+        return decrypted_data
+
+    def wait_and_publish(self):
+        for i in range(0, 6):
+            self.mqtt.publish_data_stream()

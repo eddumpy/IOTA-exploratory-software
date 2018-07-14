@@ -1,9 +1,6 @@
 
 def get_user_input():
 
-    # default device value
-    devices = None
-
     # Get a device name from the user
     name = input("Please provide a name for the device: ")
 
@@ -11,5 +8,9 @@ def get_user_input():
 
     if devices_question == 'y':
         devices = [str(x) for x in input("Provide device name(s) with a space between:\n").split()]
+        streams = len(devices)
+    else:
+        devices = []
+        streams = int(input("How many devices would you like to read from: "))
 
-    return name, devices
+    return name, devices, streams
