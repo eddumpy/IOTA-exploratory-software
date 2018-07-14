@@ -6,40 +6,65 @@ Device reads the data posted by monitor.py, and prints a service update about cl
 
 from Deployment.client import Client
 from Deployment.user_input import get_user_input
+import requests
 import time
+import sys
 
 
 def main(tags):
 
     while True:
 
-        # Code used to query tangle
-        transaction_hashes = client.get_transactions_hashes(tags)
-        transactions = client.get_transactions(transaction_hashes, count=5)
+        try:
+            # Code used to query tangle
+            transaction_hashes = client.get_transactions_hashes(tags)
+            transactions = client.get_transactions(transaction_hashes, count=(len(tags) * 5))
 
-        # Gets transaction data from list of transaction objects
-        txs_data = [int(client.get_transaction_data(tx)) for tx in transactions]
+            # Gets transaction data from list of transaction objects
+            txs_data = [float(client.get_transaction_data(tx)) for tx in transactions]
 
-        # Prints out a message to console based on client-v2 data
-        if sum(txs_data) > 3:
-            print("Red")
-        elif 2 > sum(txs_data) > 1:
-            print("Orange")
-        else:
-            print("Green")
+            # All transaction data summed
+            total = sum(txs_data)
 
-        time.sleep(300)
+            # Performs a check on the summed data and gives device a state
+            if total >= 600:
+                device_state = 2
+                print("Red")
+            elif 600 > total > 500:
+                device_state = 1
+                print("Amber")
+            else:
+                device_state = 0
+                print("Green")
+
+            # Post state of device to tangle
+            client.post_to_tangle(device_state)
+
+            # Wait period
+            client.wait_and_publish()
+
+        # Catches any connection errors when collecting data and restarts
+        except requests.exceptions.ConnectionError:
+            print("Connection error...restarting in 1 min")
+            time.sleep(60)
+            main(tags=tags)
+
+        except KeyboardInterrupt:
+            print("Exiting...")
+            sys.exit()
 
 
 # Get a device name from the user
-device_name, device_list = get_user_input()
+device_name, device_list, streams = get_user_input()
 
 # Class used to query tangle data,
 client = Client(device_name=device_name,
+                device_type='light',
+                read_from_device_type='monitor',
                 seed=b'FDUDNNKTWT9OJXMSXIYX9HUTTLCRJTW99UODHCBHAPQKSEBIOPKNCKNEBQKSWG9QTARTRKJXWDWXCW9FG',
-                subscribe_topic="monitor/data",
-                known_devices=device_list)
+                known_devices=device_list,
+                number_of_streams=streams)
 
 if __name__ == '__main__':
-    device_tags = client.find_devices()
+    device_tags = client.search_for_devices()
     main(device_tags)

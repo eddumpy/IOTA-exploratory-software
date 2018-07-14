@@ -22,33 +22,22 @@ def main(tags):
 
             # Code used to query tangle
             transaction_hashes = client.get_transactions_hashes(tags)
-            transactions = client.get_transactions(transaction_hashes)
+            transactions = client.get_transactions(transaction_hashes, count=len(tags) * 10)
 
             # Gets transaction data from list of transaction objects
             txs_data = [int(client.get_transaction_data(tx)) for tx in transactions]
 
-            # Calculates an average from last 10 transactions from client-v1
+            # Calculates the mean of found transactions
             data_average = sum(txs_data) / float(len(txs_data))
-            print("Device value: ", data_average)
+            print("Average: ", data_average)
 
-            # If the data average is above a certain threshold, a number between 0-2 will be posted
-            if data_average >= 70:
-                device_status = 2
-                client.post_to_tangle(device_status)
-            elif 70 > data_average > 60:
-                device_status = 1
-                client.post_to_tangle(device_status)
-            else:
-                device_status = 0
-                client.post_to_tangle(device_status)
+            # Posts average of data
+            client.post_to_tangle(data_average)
 
-            # Monitors every 3 minutes
-            time.sleep(180)
+            # Wait for next data collection
+            client.wait_and_publish()
 
-            # Publishes tag to message stream again for recently connected devices
-            client.mqtt.publish_data_stream(message=client.device_name + '/' + client.tag_string)
-
-    # Catches any connection errors when collecting data
+    # Catches any connection errors when collecting data and restarts
     except requests.exceptions.ConnectionError:
         print("Connection error...restarting in 1 min")
         time.sleep(60)
@@ -56,19 +45,19 @@ def main(tags):
 
     except KeyboardInterrupt:
         print("Exiting...")
-        client.mqtt.publish_data_stream(message='Exit')
         sys.exit()
 
 
-device_name, device_list = get_user_input()
+device_name, device_list, streams = get_user_input()
 
 # Create a client object with seed of device
 client = Client(device_name=device_name,
+                device_type='monitor',
+                read_from_device_type='sensor',
                 seed=b'BTPPLUVESQQYZCFYCDZVD9RXHAHTSCIBTMRVQCONZTKQMVLDPGY9HAOTH9NBPFANAEOFLEZIRNTZZVKQY',
-                subscribe_topic="sensor/data",
-                publish_topic="monitor/data",
-                known_devices=device_list)
+                known_devices=device_list,
+                number_of_streams=streams)
 
 if __name__ == '__main__':
-    device_tags = client.find_devices()
+    device_tags = client.search_for_devices()
     main(device_tags)

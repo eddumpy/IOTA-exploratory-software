@@ -15,21 +15,20 @@ import sys
 def main():
 
     try:
+        # Provide status update
+        print("Data collection initiated...")
 
         while True:
 
             # Generate random number as the data to store in the tangle and convert to Trytestring
             sensor_data = random.randint(0, 100)
-            print(sensor_data)
+            print("Data reading: ", sensor_data)
 
             # Posts encrypted data to tangle
             client.post_to_tangle(sensor_data)
 
-            # Wait 1 minutes for next data collection
-            time.sleep(60)
-
-            # Publishes tag to message stream again for recently connected devices
-            client.mqtt.publish_data_stream(message=client.device_name + '/' + client.tag_string)
+            # Wait approx 1 minute for next data collection
+            client.wait_and_publish()
 
     # Catches any connection errors when collecting data
     except requests.exceptions.ConnectionError:
@@ -39,7 +38,7 @@ def main():
 
     except KeyboardInterrupt:
         print("Ending data stream....")
-        client.mqtt.publish_data_stream(message=client.device_name + '/' + 'stream_ended')
+        client.mqtt.publish_data_stream()
         sys.exit()
 
 
@@ -48,11 +47,10 @@ name = input("Please provide a name for the device: ")
 
 # Create a client object with device seed, use a seed generator to get a seed.
 client = Client(device_name=name,
-                publish_topic="sensor/data",
-                seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY')
+                device_type='sensor',
+                seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY',
+                known_devices=[])
 
 if __name__ == '__main__':
-    print("Starting stream, publishing ", client.message, " to ", client.publish_topic)
-    client.mqtt.publish_data_stream(message=client.message)
-    print("Data collection initiated...")
+    client.mqtt.publish_data_stream()
     main()
