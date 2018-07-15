@@ -1,12 +1,6 @@
-# IOTA-application
+# IOTA-PoC
 
-IoT applications using IOTA for University research project.
-
-To run any of the scripts, ensure this git repository is downloaded or cloned into a directory on your machine.
-
-To clone this repository using the command line, navigate to the appropriate directory and use the command:
-
-``git clone https://github.com/eddumpy/IOTA-application.git``
+PoC was built for my Msc research project, it focuses on using the tangle to store real-time data collected from IoT devices. Devices will generate a tag to classify the data stored on the tangle, which is then shared for devices discover via MQTT. Devices have the option for reading data from known devices and unknown devices. 
 
 ## Dependencies 
 
@@ -75,4 +69,8 @@ own broker from your machine.
 
 ## Running the scripts
 
-More to come...
+To run any of the scripts, ensure this git repository is downloaded or cloned into a directory on your machine.
+
+To clone this repository using the command line, navigate to the appropriate directory and use the command:
+
+``git clone https://github.com/eddumpy/IOTA-application.git``
