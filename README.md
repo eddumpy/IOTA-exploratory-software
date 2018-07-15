@@ -1,6 +1,6 @@
 # IOTA-PoC
 
-PoC was built for my Msc research project, it focuses on using the tangle to store real-time data collected from IoT devices. Devices will generate a tag to classify the data stored on the tangle, which is then shared for devices discover via MQTT. Devices have the option for reading data from known devices and unknown devices. 
+PoC was built for my Msc research project, it focuses on using the tangle to store real-time data collected from IoT devices. When a device starts a data stream, a tag will be generated to classify the data on the tangle, which is then shared for devices to discover via MQTT. Devices have the option for reading data from known devices and unknown devices.
 
 ## Dependencies 
 
