@@ -35,7 +35,7 @@ def main(tags):
             client.post_to_tangle(data_average)
 
             # Wait for next data collection
-            client.wait_and_publish()
+            client.wait_and_publish(minutes=1)
 
     # Catches any connection errors when collecting data and restarts
     except requests.exceptions.ConnectionError:

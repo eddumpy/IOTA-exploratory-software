@@ -28,7 +28,7 @@ def main():
             client.post_to_tangle(sensor_data)
 
             # Wait approx 1 minute for next data collection
-            client.wait_and_publish()
+            client.wait_and_publish(minutes=1)
 
     # Catches any connection errors when collecting data
     except requests.exceptions.ConnectionError:

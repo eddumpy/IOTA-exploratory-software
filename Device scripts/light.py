@@ -1,5 +1,5 @@
 """
-status.py
+state.py
 
 Device reads the data posted by monitor.py, and prints a service update about client-v1.
 """
@@ -18,30 +18,25 @@ def main(tags):
         try:
             # Code used to query tangle
             transaction_hashes = client.get_transactions_hashes(tags)
-            transactions = client.get_transactions(transaction_hashes, count=(len(tags) * 5))
+            transactions = client.get_transactions(transaction_hashes, count=1)
 
             # Gets transaction data from list of transaction objects
             txs_data = [float(client.get_transaction_data(tx)) for tx in transactions]
 
-            # All transaction data summed
-            total = sum(txs_data)
-
-            # Performs a check on the summed data and gives device a state
-            if total >= 600:
-                device_state = 2
-                print("Red")
-            elif 600 > total > 500:
-                device_state = 1
-                print("Amber")
+            if txs_data[0] is 2:
+                light_state = "Red"
+            elif txs_data[0] is 1:
+                light_state = "Orange"
             else:
-                device_state = 0
-                print("Green")
+                light_state = "Green"
+
+            print(light_state)
 
             # Post state of device to tangle
-            client.post_to_tangle(device_state)
+            client.post_to_tangle(light_state)
 
             # Wait period
-            client.wait_and_publish()
+            client.wait_and_publish(minutes=1)
 
         # Catches any connection errors when collecting data and restarts
         except requests.exceptions.ConnectionError:
@@ -60,8 +55,8 @@ device_name, device_list, streams = get_user_input()
 # Class used to query tangle data,
 client = Client(device_name=device_name,
                 device_type='light',
-                read_from_device_type='monitor',
-                seed=b'FDUDNNKTWT9OJXMSXIYX9HUTTLCRJTW99UODHCBHAPQKSEBIOPKNCKNEBQKSWG9QTARTRKJXWDWXCW9FG',
+                read_from_device_type='state',
+                seed=b'UKFZVYF99PJTYMOXFIBPQVLB9EGEC9VWVOOZTPAOWVZSURREHLKORIGFVBMQYJGGNC9GBNHZKDIDPBXAS',
                 known_devices=device_list,
                 number_of_streams=streams)
 

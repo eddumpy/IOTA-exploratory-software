@@ -6,7 +6,7 @@ A really basic script for encrypting and decrypting data.
 This script is based off of some code found at this link:
 https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
 
-Can be edited to provide better encryption algorithms. For this deployment,
+Can be edited to provide better encryption algorithms.
 """
 
 from Crypto.Cipher import XOR

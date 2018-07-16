@@ -11,19 +11,32 @@ import time
 
 class MQTT:
 
-    def __init__(self, device_name, device_tag, broker, subscribe_topics, publish_topics, known_devices,
+    def __init__(self, device_name, device_tag, device_type, read_from, broker, subscribe_topics, publish_topics, known_devices,
                  number_of_streams):
 
         # Name of device and its tag
         self.device_name = device_name
         self.device_tag = device_tag
+        self.device_type = device_type
 
         # MQTT broker, default broker is locally running
         self.broker = broker
         self.mqtt_port = 1883
 
         # MQTT client
-        self.mqtt_client = mqtt.Client(device_name)
+        self.mqtt_client = mqtt.Client(self.device_name)
+
+        # Creates the subscribe topics, depends on if devices are known
+        if read_from is None:
+            self.subscribe_topics = []
+        else:
+            if not known_devices:
+                self.subscribe_topics = [read_from + '/']
+            else:
+                self.subscribe_topics = [read_from + '/' + device for device in known_devices]
+
+        # The publish topics
+        self.publish_topics = [self.device_type + '/', self.device_type + '/' + self.device_name + '/']
 
         # MQTT topics
         self.subscribe_topics = subscribe_topics

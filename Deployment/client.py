@@ -6,13 +6,8 @@ passed through when creating a Client object, enabling flexibility.
 
 Uses MQTT to communicate with other devices
 
-Methods in this class provide ways to:
-  -  Store data on the tangle
-  -  Query data on the tangle
-  -  Read data on the tangle
-  -  Sort data from the tangle
-  -  Manipulate data from the tangle
 """
+
 import iota
 from iota import Transaction, ProposedTransaction, TryteString, Tag
 from Deployment.node import Node
@@ -30,7 +25,7 @@ class Client:
                  # Device details
                  device_name,  # Device name -> String
                  device_type,  # Device type -> String
-                 seed,  # Seed of device, if empty random seed will be used -> String
+                 seed,  # IOTA Seed -> String
                  known_devices,  # Specifies if you want to read from any known devices -> [String]
                  reuse_address=True,  # If you want to reuse addresses
 
@@ -48,7 +43,7 @@ class Client:
         self.device_name = device_name
         self.device_type = device_type
 
-        # Address info
+        # Device address info
         self.reuse_address = reuse_address
         self.address = ''
 
@@ -59,39 +54,27 @@ class Client:
         self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
         self.tag = Tag(self.tag_string)
 
-        # Defines the publish and subscribe topics
-        if read_from_device_type is None:
-            self.subscribe_topics = []
-        else:
-            if not known_devices:
-                self.subscribe_topics = [read_from_device_type + '/']
-            else:
-                self.subscribe_topics = [read_from_device_type + '/' + device for device in known_devices]
-
-        self.publish_topics = [self.device_type + '/', self.device_type + '/' + self.device_name + '/']
-
         # MQTT client to use with the Iota client
         self.mqtt = MQTT(device_name=self.device_name,
                          device_tag=self.tag_string,
+                         device_type=self.device_type,
+                         read_from=read_from_device_type,
                          broker=mqtt_broker,
-                         subscribe_topics=self.subscribe_topics,
-                         publish_topics=self.publish_topics,
                          known_devices=known_devices,
                          number_of_streams=number_of_streams)
 
-        # Stores the most recent transaction timestamp
-        self.most_recent_transaction = None
-
         # Class used to encrypt and decrypt data
         self.crypto = Crypto()
+
+        # Stores the most recent transaction timestamp
+        self.most_recent_transaction = None
 
     def generate_address(self):
         """Gets a new unused address for each transaction, with security level of 2
 
         :return: Address of device
         """
-        result = self.api.get_new_addresses(count=None, security_level=2)
-        addresses = result['addresses']
+        addresses = self.api.get_new_addresses(count=None, security_level=2)['addresses']
         address = addresses[0]
         self.address = address
         return address
@@ -229,16 +212,13 @@ class Client:
         """
 
         # Get timestamp and message of Transaction
-        message = transaction.signature_message_fragment
-
-        # Decoding message tryte string
-        decoded_data = message.decode()
+        message = transaction.signature_message_fragment.decode()
 
         # Decrypt data
-        decrypted_data = self.crypto.decrypt(decoded_data)
+        decrypted_data = self.crypto.decrypt(message)
 
         return decrypted_data
 
-    def wait_and_publish(self):
-        for i in range(0, 6):
+    def wait_and_publish(self, minutes):
+        for i in range(0, (6 * minutes)):
             self.mqtt.publish_data_stream()
