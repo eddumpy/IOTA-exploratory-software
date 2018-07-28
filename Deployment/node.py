@@ -16,7 +16,7 @@ import requests
 
 class Node:
 
-    def __init__(self, seed, iota_node, route_pow, pow_node):
+    def __init__(self, seed, iota_node, route_pow=False, pow_node=''):
 
         # Node variables
         self.iota_node = iota_node  # Public node

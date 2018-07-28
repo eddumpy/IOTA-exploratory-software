@@ -8,12 +8,13 @@ Uses MQTT to communicate with other devices
 
 """
 
-import iota
 from iota import Transaction, ProposedTransaction, TryteString, Tag
 from Deployment.node import Node
-from Deployment.mqtt import MQTT
+from Deployment.MQTT.device import Device
+from Deployment.MQTT.broker import Broker
 from Deployment.crypto import Crypto
 
+import iota
 import time
 import random
 import string
@@ -26,22 +27,34 @@ class Client:
                  device_name,  # Device name -> String
                  device_type,  # Device type -> String
                  seed,  # IOTA Seed -> String
-                 known_devices,  # Specifies if you want to read from any known devices -> [String]
-                 reuse_address=True,  # If you want to reuse addresses
+                 reuse_address=True,  # If you want to reuse addresses -> Bool
 
                  #  MQTT configuration
-                 read_from_device_type=None,  # Specifies which devices you wish to read from
-                 number_of_streams=1,  # Specifies how many streams you wish to read from -> Int
+                 broker=False,
                  mqtt_broker="localhost",  # broker for MQTT communication -> String
 
                  # Iota node configuration
                  route_pow=True,  # If you wish to route the PoW to a node -> Bool
-                 iota_node='https://nodes.devnet.thetangle.org:443',  # URI of IOTA node to connect to -> String
+                 iota_node='https://nodes.devnet.thetangle.org:443',  # URI of IOTA node -> String
                  pow_node='http://localhost:14265'):  # Uri of PoW node -> String
 
-        # Name of device, if empty will be seen as 'unknown device'
-        self.device_name = device_name
-        self.device_type = device_type
+        self.network_name = 'network'  # Name of network
+        self.device_type = device_type  # Device type
+        self.device_name = device_name  # Name of device
+
+        # Creates a random Tag to classify current data stream
+        self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
+        self.tag = Tag(self.tag_string)
+
+        # Device status
+        self.device_status = 'Online'
+
+        # Stores device details in a list
+        self.device_details = [self.network_name,
+                               self.device_type,
+                               self.device_name,
+                               self.tag_string,
+                               self.device_status]
 
         # Device address info
         self.reuse_address = reuse_address
@@ -50,74 +63,27 @@ class Client:
         # IOTA api, created through the Node class
         self.api = Node(seed, iota_node, route_pow, pow_node).api
 
-        # Creates a random Tag to classify current data stream
-        self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
-        self.tag = Tag(self.tag_string)
-
         # MQTT client to use with the Iota client
-        self.mqtt = MQTT(device_name=self.device_name,
-                         device_tag=self.tag_string,
-                         device_type=self.device_type,
-                         read_from=read_from_device_type,
-                         broker=mqtt_broker,
-                         known_devices=known_devices,
-                         number_of_streams=number_of_streams)
+        if broker:
+            self.mqtt = Broker(name=self.device_name,  network_name=self.network_name, broker=mqtt_broker)
+        else:
+            self.mqtt = Device(name=self.device_name, network_name=self.network_name, broker=mqtt_broker)
 
         # Class used to encrypt and decrypt data
         self.crypto = Crypto()
 
-        # Stores the most recent transaction timestamp
+        # Stores the most recent transaction
         self.most_recent_transaction = None
 
     def generate_address(self):
-        """Gets a new unused address for each transaction, with security level of 2
+        """Gets a new unused address for each transaction, with security level 2
 
         :return: Address of device
         """
+
+        # Finds the next unused address
         addresses = self.api.get_new_addresses(count=None, security_level=2)['addresses']
-        address = addresses[0]
-        self.address = address
-        return address
-
-    def get_transactions_hashes(self, tags: [Tag]) -> [TryteString]:
-        """Gets transaction hashes of a given tag
-
-        :param tags: Tag used by the device when sending transactions
-        :return: List of Transaction hashes
-        """
-
-        transactions_hashes = self.api.find_transactions(tags=tags)
-        txs_hashes = transactions_hashes['hashes']
-
-        if not txs_hashes:
-            print("No Transactions found, waiting for transactions...")
-            time.sleep(60)
-            self.get_transactions_hashes(tags)
-        else:
-            return txs_hashes
-
-    def get_transactions(self, tx_hashes, most_recent=True, count=10) -> [Transaction]:
-        """Creates Transaction objects from the transaction trytes
-
-
-        :param tx_hashes: List of Transaction hashes
-        :param most_recent: whether you want most recent transactions or not
-        :param count: Specifies how many transactions you want given you want most recent transactions
-        :return: List of Transaction objects
-        """
-
-        # The hashes are used to get the raw transaction trytes, which can then be converted to
-        # Transaction objects.
-        result = self.api.get_trytes(tx_hashes)
-        tx_trytes = result['trytes']
-
-        # Stores the Transaction objects in a list
-        transactions = [Transaction.from_tryte_string(tryte) for tryte in tx_trytes]
-
-        # Sorts the transactions into order
-        ordered_transactions = self.sort_data(transactions, most_recent, count)
-
-        return ordered_transactions
+        return addresses[0]
 
     def post_to_tangle(self, data, verbose=False):
         """Posts data to the tangle to a randomly generated address
@@ -161,21 +127,42 @@ class Client:
                 end = time.time()
                 print("Transaction complete \nElapsed time: ", end - start, " seconds.")
 
-        except iota.adapter.BadApiResponse:
+        except iota.BadApiResponse:
             print("Transaction failed, retrying...")
             self.post_to_tangle(data)
 
-    def search_for_devices(self):
-        """Finds devices to read data streams
+    def get_transactions(self, tags, most_recent=True, count=10) -> [Transaction]:
+        """Creates Transaction objects from the transaction trytes
 
-        :return: The tags used to post data from found devices-> [Tags]
+        :param tags: List of tags
+        :param most_recent: whether you want most recent transactions or not
+        :param count: Specifies how many transactions you want given you want most recent transactions
+        :return: List of Transaction objects
         """
 
-        self.mqtt.find_data_streams()
-        tags = [Tag(tag) for tag in self.mqtt.tags_found]
-        for device in self.mqtt.devices_found:
-            print("Reading from ", device)
-        return tags
+        transactions_hashes = self.api.find_transactions(tags=tags)['hashes']
+
+        if not transactions_hashes:
+            print("No Transactions found, waiting for transactions...")
+            time.sleep(60)
+            self.get_transactions(tags)
+        else:
+
+            # The hashes are used to get the raw transaction trytes, which can then be converted to
+            # Transaction objects.
+            result = self.api.get_trytes(transactions_hashes)
+            transaction_trytes = result['trytes']
+
+            # Stores the Transaction objects in a list
+            transactions = [Transaction.from_tryte_string(tryte) for tryte in transaction_trytes]
+
+            # Sorts the transactions into order
+            ordered_transactions = self.sort_data(transactions, most_recent, count)
+
+            # Saves timestamp of most recent transaction
+            self.most_recent_transaction = ordered_transactions[len(ordered_transactions) - 1].timestamp
+
+            return ordered_transactions
 
     def sort_data(self, transactions, most_recent, count):
         """Sorts data by the oldest to the newest transactions
@@ -216,9 +203,12 @@ class Client:
 
         # Decrypt data
         decrypted_data = self.crypto.decrypt(message)
-
         return decrypted_data
 
-    def wait_and_publish(self, minutes):
-        for i in range(0, (6 * minutes)):
-            self.mqtt.publish_data_stream()
+    def publish(self, minutes):
+        for i in range(0, (30 * minutes)):
+            self.mqtt.publish_device(self.device_details)
+
+    def __str__(self):
+        return "Network name: " + self.network_name + "\nDevice type: " + self.device_type \
+            + "\nDevice name: " + self.device_name + "\nTag: " + self.tag_string
