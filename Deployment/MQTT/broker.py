@@ -41,12 +41,14 @@ class Broker(MQTT):
                         if name not in self.found_devices:
                             self.found_devices.append(name)
                             tag = self.get_device_tag(topic=(topic + name + '/'))
-                            self.devices.append([device_type, name, tag])
+                            status = self.get_status(topic=topic + name + '/' + 'status/')
+                            self.devices.append([device_type, name, tag, status])
         else:
             for name in names:
                 topic = self.network_topic + '+' + '/' + name + '/'
                 tag = self.get_device_tag(topic=topic)
-                self.devices.append(['unknown type', name, tag])
+                status = self.get_status(topic=topic + 'status/')
+                self.devices.append(['unknown type', name, tag, status])
         return self.devices
 
     def reset(self):

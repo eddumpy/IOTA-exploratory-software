@@ -16,16 +16,18 @@ def main():
     while True:
 
         # Find online devices
-        devices = client.mqtt.find_devices(names=['sss'])
+        devices = client.mqtt.find_devices()
 
         # Creates table
-        table = PrettyTable(['Type', 'Name', 'Tag', 'Last Transaction'])
+        table = PrettyTable(['Type', 'Name', 'Tag', 'Status', 'Last Transaction', 'Total transactions'])
 
         # Retrieves timestamp of latest transaction
         for device in devices:
             latest_transaction_timestamp = client.get_transactions([device[2]], count=1)[0].timestamp
             t = datetime.datetime.fromtimestamp(latest_transaction_timestamp).strftime('%Y-%m-%d %H:%M:%S')
             device.append(t)
+            num_of_txs = len(client.get_transactions([device[2]], most_recent=False))
+            device.append(num_of_txs)
             table.add_row(device)
 
         # Print table to console

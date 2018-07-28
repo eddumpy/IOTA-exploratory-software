@@ -46,6 +46,16 @@ class MQTT(object):
                 found = True
         return tag
 
+    def get_status(self, topic):
+        found = False
+        status = None
+        while not found:
+            messages = self.get_message(topic)
+            if messages:
+                status = messages[0]
+                found = True
+        return status
+
     def find_device_types(self):
         """Find device types that are online in the network
 

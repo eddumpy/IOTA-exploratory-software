@@ -47,7 +47,7 @@ class Client:
         self.tag = Tag(self.tag_string)
 
         # Device status
-        self.device_status = 'Online'
+        self.device_status = 'Green'
 
         # Stores device details in a list
         self.device_details = [self.network_name,
