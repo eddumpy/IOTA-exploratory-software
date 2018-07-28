@@ -1,7 +1,9 @@
 """
-state.py
+light.py
 
-Device reads the data posted by monitor.py, and prints a service update about client-v1.
+Depending on the state value posted by state.py, this script will print out either, 'Red', 'Orange' and 'Green' to
+imitate a light
+
 """
 
 from Deployment.client import Client
@@ -17,8 +19,7 @@ def main(tags):
 
         try:
             # Code used to query tangle
-            transaction_hashes = client.get_transactions_hashes(tags)
-            transactions = client.get_transactions(transaction_hashes, count=1)
+            transactions = client.get_transactions(tags, count=1)
 
             # Gets transaction data from list of transaction objects
             txs_data = [float(client.get_transaction_data(tx)) for tx in transactions]
@@ -36,7 +37,7 @@ def main(tags):
             client.post_to_tangle(light_state)
 
             # Wait period
-            client.wait_and_publish(minutes=1)
+            client.publish(minutes=1)
 
         # Catches any connection errors when collecting data and restarts
         except requests.exceptions.ConnectionError:
@@ -55,11 +56,8 @@ device_name, device_list, streams = get_user_input()
 # Class used to query tangle data,
 client = Client(device_name=device_name,
                 device_type='light',
-                read_from_device_type='state',
-                seed=b'UKFZVYF99PJTYMOXFIBPQVLB9EGEC9VWVOOZTPAOWVZSURREHLKORIGFVBMQYJGGNC9GBNHZKDIDPBXAS',
-                known_devices=device_list,
-                number_of_streams=streams)
+                seed=b'UKFZVYF99PJTYMOXFIBPQVLB9EGEC9VWVOOZTPAOWVZSURREHLKORIGFVBMQYJGGNC9GBNHZKDIDPBXAS')
 
 if __name__ == '__main__':
-    device_tags = client.search_for_devices()
+    device_tags = client.mqtt.find_device_tags(devices=device_list, num_of_streams=streams, read_from='state')
     main(device_tags)

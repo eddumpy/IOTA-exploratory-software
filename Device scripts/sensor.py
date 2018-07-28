@@ -28,7 +28,7 @@ def main():
             client.post_to_tangle(sensor_data)
 
             # Wait approx 1 minute for next data collection
-            client.wait_and_publish(minutes=1)
+            client.publish(minutes=1)
 
     # Catches any connection errors when collecting data
     except requests.exceptions.ConnectionError:
@@ -38,7 +38,6 @@ def main():
 
     except KeyboardInterrupt:
         print("Ending data stream....")
-        client.mqtt.publish_data_stream()
         sys.exit()
 
 
@@ -48,9 +47,7 @@ name = input("Please provide a name for the device: ")
 # Create a client object with device seed, use a seed generator to get a seed.
 client = Client(device_name=name,
                 device_type='sensor',
-                seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY',
-                known_devices=[])
+                seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY')
 
 if __name__ == '__main__':
-    client.mqtt.publish_data_stream()
     main()
