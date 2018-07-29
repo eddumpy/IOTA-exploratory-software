@@ -8,12 +8,12 @@ from Deployment.MQTT.mqtt import MQTT
 from iota import Tag
 
 
-class Broker(MQTT):
+class MqttBroker(MQTT):
 
     def __init__(self, name, network_name, broker):
 
         # MQTT broker parameters
-        super(Broker, self).__init__(name, network_name, broker)
+        super(MqttBroker, self).__init__(name, network_name, broker)
 
         # Saves devices
         self.devices = list()

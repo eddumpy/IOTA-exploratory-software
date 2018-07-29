@@ -8,11 +8,11 @@ from iota import Tag
 import time
 
 
-class Device(MQTT):
+class MqttDevice(MQTT):
 
     def __init__(self, name, network_name, broker):
 
-        super(Device, self).__init__(name, network_name, broker)
+        super(MqttDevice, self).__init__(name, network_name, broker)
 
         # Initialises a list for publish and subscribe topics
         self.publish_topics = list()

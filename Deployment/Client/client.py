@@ -10,15 +10,13 @@ Uses MQTT to communicate with other devices
 
 from iota import Transaction, ProposedTransaction, TryteString, Tag
 from Deployment.node import Node
-from Deployment.MQTT.device import Device
-from Deployment.MQTT.broker import Broker
+from Deployment.MQTT.device import MqttDevice
 from Deployment.crypto import Crypto
 
 import iota
 import time
 import random
 import string
-from datetime import datetime
 
 
 class Client:
@@ -59,11 +57,8 @@ class Client:
         # IOTA api, created through the Node class
         self.api = Node(seed, iota_node, route_pow, pow_node).api
 
-        # MQTT client, devices and brokers
-        if self.device_type == 'broker':
-            self.mqtt = Broker(name=self.device_name, network_name=self.network_name, broker=mqtt_broker)
-        else:
-            self.mqtt = Device(name=self.device_name, network_name=self.network_name, broker=mqtt_broker)
+        # MQTT client
+        self.mqtt = MqttDevice(name=self.device_name, network_name=self.network_name, broker=mqtt_broker)
 
         # Class used to encrypt and decrypt data
         self.crypto = Crypto()
@@ -178,24 +173,6 @@ class Client:
         for i in range(0, (30 * minutes)):
             self.mqtt.publish_device(self.device_details)
 
-    def check_device_status(self, tag):
-
-        # Checks the data
-        transactions = self.get_transactions(tags=[tag], count=5)
-        tx_data = [self.get_transaction_data(transaction) for transaction in transactions]
-
-        # Checks the timestamps
-        timestamps = self.get_timestamps(transactions[1:], as_int=True)
-
-        timestamp_diff = ((datetime.fromtimestamp(round(int(timestamps[1]) / 1000))
-                           - datetime.fromtimestamp(round(int(timestamps[0]) / 1000))).total_seconds() / 60)
-
-        if len(set(tx_data)) != 1 and timestamp_diff < 5:
-            device_status = 'Green'
-        else:
-            device_status = 'Red'
-        return device_status
-
     @staticmethod
     def sort_data(transactions, most_recent, count):
         """Sorts data by the oldest to the newest transactions
@@ -220,15 +197,3 @@ class Client:
             return ordered_transactions[-count:]
         else:
             return ordered_transactions
-
-    @staticmethod
-    def get_timestamps(transactions, as_int=False):
-
-        timestamps = [tx.timestamp for tx in transactions]
-
-        if not as_int:
-            converted_timestamps = [datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                                    for timestamp in timestamps]
-            return converted_timestamps
-        else:
-            return timestamps

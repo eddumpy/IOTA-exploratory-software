@@ -5,9 +5,9 @@ Run this script to print out a network summary
 
 """
 
-from Deployment.client import Client
-from prettytable import PrettyTable
+from Deployment.Client.brokerclient import BrokerClient
 import time
+from iota import Tag
 
 
 def main():
@@ -15,35 +15,12 @@ def main():
     while True:
 
         # Find online devices
-        devices = client.mqtt.find_devices()
+        #devices = client.mqtt.find_devices()
 
-        # Creates table
-        table = PrettyTable(['Type', 'Name', 'Tag', 'Status', 'Last Transaction', 'Last Reading', 'Total transactions'])
+        # Used for testing
+        devices = [['sensor', 'sensor1', Tag(b'KSUOJULM9TWGSKLWQDQS9DUGOPS')]]
 
-        # Retrieves timestamp of latest transaction
-        for device in devices:
-            device_tag = device[2]
-
-            # Add status of device
-            status = client.check_device_status(device_tag)
-
-            # Number of transactions
-            transactions = client.get_transactions([device_tag], most_recent=False)
-            num_of_txs = len(transactions)
-
-            # Latest Transaction
-            latest_transaction = transactions[-1:]
-            time_of_transaction = client.get_timestamps(latest_transaction)[0]
-            last_transaction_data = client.get_transaction_data(latest_transaction[0])
-
-            # Add to device details
-            device.append(status)
-            device.append(time_of_transaction)
-            device.append(last_transaction_data)
-            device.append(num_of_txs)
-
-            # Add device to table
-            table.add_row(device)
+        table = client.create_table(devices, tag=False)
 
         # Print table to console
         print(table)
@@ -55,10 +32,10 @@ def main():
         client.mqtt.reset()
 
 
-client = Client(device_name='broker1',
-                device_type='broker',
-                seed=b'SEDUAWZ9CKBMVEOZ9FCFGFZLCHMIPROBURLEQTYLURFDHOKRCZDNKPNSQTRIBQFQLOAQGIZGYNZNIOOYI',
-                route_pow=False)
+client = BrokerClient(device_name='broker1',
+                      device_type='broker',
+                      seed=b'SEDUAWZ9CKBMVEOZ9FCFGFZLCHMIPROBURLEQTYLURFDHOKRCZDNKPNSQTRIBQFQLOAQGIZGYNZNIOOYI',
+                      route_pow=False)
 
 if __name__ == '__main__':
     main()

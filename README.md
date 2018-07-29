@@ -23,6 +23,22 @@ parameters (found in ``client.py``). Below explains what these parameters are.
 When running any of the device scripts you will be asked to name the device, the input you give will be passed in the 
 parameter ``device_name``. This is so devices can identify who is posting data.
 
+``device_type``
+
+``read_from_device_type``
+
+``Iota seed``
+
+To create a seed, you can use the commands below:
+
+Mac OS: 
+
+``$ cat /dev/urandom |LC_ALL=C tr -dc 'A-Z9'| fold -w 81 | head -n 1``
+  
+Linux:
+
+``$ cat /dev/urandom |tr -dc A-Z9|head -c${1:-81}``
+
 ### IOTA Node
 
 To interact with the tangle, you need to connect to a synced IOTA node. The parameters that concern the IOTA node are:
@@ -45,13 +61,13 @@ https://github.com/iotaledger/iri
 Once you have the iri installed correctly, open up the terminal on your machine navigate to the directory 
 with ``iri-1.5.0.jar`` and run the command:
 
-`` java -jar iri-1.5.0.jar -p 14265 --testnet --remote``
+``java -jar iri-1.5.0.jar -p 14265 --testnet --remote``
 
 ### MQTT
 
 MQTT is used as the communication protocol for devices. Devices will publish their name and Tag they are using 
 to post data to a topic. Any device subscribed to the that topic can see which devices are publishing there tags,
-and can read all transactions associated with that tag. Below are the parameters needed to set up MQTT.
+and can read all self associated with that tag. Below are the parameters needed to set up MQTT.
 
 ``mqtt_broker``: To use MQTT, you must be connected to a broker. The broker is in charge of handling messages 
 and ensuring clients can subscribe and publish to topics. Public brokers can be found online or you can run your 
@@ -74,3 +90,5 @@ To run any of the scripts, ensure this git repository is downloaded or cloned in
 To clone this repository using the command line, navigate to the appropriate directory and use the command:
 
 ``git clone https://github.com/eddumpy/IOTA-application.git``
+
+The device scripts directory contains python files which imitates programs run on IoT devices. The ``sensor.py`` file 
