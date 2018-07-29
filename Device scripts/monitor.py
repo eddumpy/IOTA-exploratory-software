@@ -5,7 +5,7 @@ This script represents a device monitoring data from the sensing devices (sensor
 the data found in the last 10 transactions made by the sensing device(s). It then stores this data to the tangle.
 """
 
-from Deployment.client import Client
+from Deployment.Client.client import Client
 from Deployment.user_input import get_user_input
 import time
 import requests
@@ -51,6 +51,9 @@ device_name, device_list, streams = get_user_input()
 client = Client(device_name=device_name,
                 device_type='monitor',
                 seed=b'BTPPLUVESQQYZCFYCDZVD9RXHAHTSCIBTMRVQCONZTKQMVLDPGY9HAOTH9NBPFANAEOFLEZIRNTZZVKQY')
+
+# Prints client details to console
+print(client)
 
 if __name__ == '__main__':
     device_tags = client.mqtt.find_device_tags(devices=device_list, num_of_streams=streams, read_from='sensor')

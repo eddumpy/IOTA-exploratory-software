@@ -4,7 +4,7 @@ state.py
 Device reads the data posted by monitor.py, and gives a state value
 """
 
-from Deployment.client import Client
+from Deployment.Client.client import Client
 from Deployment.user_input import get_user_input
 import requests
 import time
@@ -59,6 +59,9 @@ device_name, device_list, streams = get_user_input()
 client = Client(device_name=device_name,
                 device_type='state',
                 seed=b'FDUDNNKTWT9OJXMSXIYX9HUTTLCRJTW99UODHCBHAPQKSEBIOPKNCKNEBQKSWG9QTARTRKJXWDWXCW9FG')
+
+# Prints client details to console
+print(client)
 
 if __name__ == '__main__':
     device_tags = client.mqtt.find_device_tags(devices=device_list, num_of_streams=streams, read_from='monitor')

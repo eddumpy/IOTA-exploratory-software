@@ -5,7 +5,7 @@ This python script represents a sensing IoT device. Every minute, the device wil
 random number between 0-9 on to the tangle.
 """
 
-from Deployment.client import Client
+from Deployment.Client.client import Client
 import time
 import random
 import requests
@@ -48,6 +48,9 @@ name = input("Please provide a name for the device: ")
 client = Client(device_name=name,
                 device_type='sensor',
                 seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY')
+
+# Prints client details to console
+print(client)
 
 if __name__ == '__main__':
     main()
