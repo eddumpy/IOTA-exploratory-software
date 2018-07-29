@@ -4,7 +4,6 @@ app.py
 Run this script to print out a network summary
 
 """
-import datetime
 
 from Deployment.client import Client
 from prettytable import PrettyTable
@@ -19,15 +18,31 @@ def main():
         devices = client.mqtt.find_devices()
 
         # Creates table
-        table = PrettyTable(['Type', 'Name', 'Tag', 'Status', 'Last Transaction', 'Total transactions'])
+        table = PrettyTable(['Type', 'Name', 'Tag', 'Status', 'Last Transaction', 'Last Reading', 'Total transactions'])
 
         # Retrieves timestamp of latest transaction
         for device in devices:
-            latest_transaction_timestamp = client.get_transactions([device[2]], count=1)[0].timestamp
-            t = datetime.datetime.fromtimestamp(latest_transaction_timestamp).strftime('%Y-%m-%d %H:%M:%S')
-            device.append(t)
-            num_of_txs = len(client.get_transactions([device[2]], most_recent=False))
+            device_tag = device[2]
+
+            # Add status of device
+            status = client.check_device_status(device_tag)
+
+            # Number of transactions
+            transactions = client.get_transactions([device_tag], most_recent=False)
+            num_of_txs = len(transactions)
+
+            # Latest Transaction
+            latest_transaction = transactions[-1:]
+            time_of_transaction = client.get_timestamps(latest_transaction)[0]
+            last_transaction_data = client.get_transaction_data(latest_transaction[0])
+
+            # Add to device details
+            device.append(status)
+            device.append(time_of_transaction)
+            device.append(last_transaction_data)
             device.append(num_of_txs)
+
+            # Add device to table
             table.add_row(device)
 
         # Print table to console
@@ -43,7 +58,7 @@ def main():
 client = Client(device_name='broker1',
                 device_type='broker',
                 seed=b'SEDUAWZ9CKBMVEOZ9FCFGFZLCHMIPROBURLEQTYLURFDHOKRCZDNKPNSQTRIBQFQLOAQGIZGYNZNIOOYI',
-                broker=True)
+                route_pow=False)
 
 if __name__ == '__main__':
     main()

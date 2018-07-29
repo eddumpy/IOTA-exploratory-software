@@ -30,44 +30,32 @@ class MQTT(object):
         # Saves messages from MQTT
         self.messages = list()
 
-    def get_device_tag(self, topic):
-        """Gets the tag of a device
+    def get_single_message(self, topic):
+        """Returns a message from a topic where only 1 message will be posted.
+        (For example, finding a device tag as only the tag is getting posted here.)
 
         :param topic: A topic with 'device_type/device_name/' format
         :return: Tag
         """
-
-        found = False
-        tag = None
-        while not found:
-            messages = self.get_message(topic)
+        while True:
+            messages = self.get_message(topic, seconds=5)
             if messages:
-                tag = messages[0]
-                found = True
-        return tag
+                m = messages[0]
+                return m
 
-    def get_status(self, topic):
-        found = False
-        status = None
-        while not found:
-            messages = self.get_message(topic)
-            if messages:
-                status = messages[0]
-                found = True
-        return status
+    def find_messages(self, topic):
+        """Retrieves a list of messages from a topic, where different messages will be posted
+        (For example, at the network level there are several device types that are posted here)
 
-    def find_device_types(self):
-        """Find device types that are online in the network
-
-        :return: A list of device types
+        :return: A list of messages
         """
 
-        device_types = set()
-        messages = self.get_message(self.network_topic, seconds=60)
+        m = set()
+        messages = self.get_message(topic, seconds=30)
         if messages:
             for message in messages:
-                device_types.add(message)
-        return device_types
+                m.add(message)
+        return m
 
     def get_message(self, topic, seconds=5):
         """Gets messages from a MQTT stream
@@ -89,7 +77,6 @@ class MQTT(object):
 
     def on_message(self, client, userdata, message):
         """Callback function for MQTT
-
         """
 
         # Message from device

@@ -25,7 +25,7 @@ def main():
             print("Data reading: ", sensor_data)
 
             # Posts encrypted data to tangle
-            client.post_to_tangle(sensor_data)
+            client.post_to_tangle(sensor_data, verbose=True)
 
             # Wait approx 1 minute for next data collection
             client.publish(minutes=1)
