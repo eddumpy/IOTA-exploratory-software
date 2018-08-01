@@ -14,13 +14,18 @@ def main():
 
     while True:
 
-        # Find online devices
-        #devices = client.mqtt.find_devices()
-
         # Used for testing
-        devices = [['sensor', 'sensor1', Tag(b'KSUOJULM9TWGSKLWQDQS9DUGOPS')]]
+        de_devices = [['sensor', 'sensor1', Tag(b'KSUOJULM9TWGSKLWQDQS9DUGOPS')],
+                   ['sensor', 'sensor2', Tag(b'DSSSXPQCTPYAIUCOU9UJKRNZTPU')]]
 
-        table = client.create_table(devices, tag=False)
+        # Use MQTT to find devices
+        devices = client.mqtt.find_devices() + de_devices
+
+        devices_data, attributes = client.get_device_data(devices, last_tx=False, last_reading=False, total_txs=False)
+
+        final_devices = client.query_device_data(devices_data)
+
+        table = client.create_table(final_devices, attributes)
 
         # Print table to console
         print(table)
@@ -32,8 +37,7 @@ def main():
         client.mqtt.reset()
 
 
-client = BrokerClient(device_name='broker1',
-                      device_type='broker',
+client = BrokerClient(device_type='broker',
                       seed=b'SEDUAWZ9CKBMVEOZ9FCFGFZLCHMIPROBURLEQTYLURFDHOKRCZDNKPNSQTRIBQFQLOAQGIZGYNZNIOOYI',
                       route_pow=False)
 

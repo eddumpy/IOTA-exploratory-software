@@ -10,7 +10,7 @@ Uses MQTT to communicate with other devices
 
 from iota import Transaction, ProposedTransaction, TryteString, Tag
 from Deployment.node import Node
-from Deployment.MQTT.device import MqttDevice
+from Deployment.MQTT.mqtt_device import MqttDevice
 from Deployment.crypto import Crypto
 
 import iota
@@ -23,7 +23,6 @@ class Client:
 
     def __init__(self,
                  # Device details
-                 device_name,  # Device name -> String
                  device_type,  # Device type -> String
                  seed,  # IOTA Seed -> String
                  reuse_address=True,  # If you want to reuse addresses -> Bool
@@ -36,9 +35,16 @@ class Client:
                  iota_node='https://nodes.devnet.thetangle.org:443',  # URI of IOTA node -> String
                  pow_node='http://localhost:14265'):  # Uri of PoW node -> String
 
+        # IOTA api, created through the Node class
+        self.api = Node(seed, iota_node, route_pow, pow_node).api
+
         self.network_name = 'network'  # Name of network
+
+        # MQTT client
+        self.mqtt = MqttDevice(network_name=self.network_name, broker=mqtt_broker)
+
         self.device_type = device_type  # Device type
-        self.device_name = device_name  # Name of device
+        self.device_name = self.create_name(check_network=True)  # Name of device
 
         # Creates a random Tag to classify current data stream
         self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
@@ -54,18 +60,26 @@ class Client:
         self.reuse_address = reuse_address
         self.address = ''
 
-        # IOTA api, created through the Node class
-        self.api = Node(seed, iota_node, route_pow, pow_node).api
-
-        # MQTT client
-        self.mqtt = MqttDevice(name=self.device_name, network_name=self.network_name, broker=mqtt_broker)
-
         # Class used to encrypt and decrypt data
         self.crypto = Crypto()
 
     def __str__(self):
         return "Network name: " + self.network_name + "\nDevice type: " + self.device_type \
                + "\nDevice name: " + self.device_name + "\nTag: " + self.tag_string
+
+    def create_name(self, check_network=False):
+        """Creates a name for the device
+
+        :return: name of device
+        """
+        name = input("Please provide a name for the device: ")
+
+        if check_network:
+            names_in_network = self.mqtt.find_messages(topic=self.network_name + '/' + self.device_type + '/')
+            if name in names_in_network:
+                print("Name already used, please provide a different name.")
+                self.create_name()
+        return name
 
     def generate_address(self):
         """Gets a new unused address for each transaction, with security level 2

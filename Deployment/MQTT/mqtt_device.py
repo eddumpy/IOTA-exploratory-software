@@ -1,4 +1,4 @@
-"""device.py
+"""mqtt_device.py
 
 MQTT for device scripts
 """
@@ -10,9 +10,9 @@ import time
 
 class MqttDevice(MQTT):
 
-    def __init__(self, name, network_name, broker):
+    def __init__(self, network_name, broker):
 
-        super(MqttDevice, self).__init__(name, network_name, broker)
+        super(MqttDevice, self).__init__(network_name, broker)
 
         # Initialises a list for publish and subscribe topics
         self.publish_topics = list()
@@ -41,7 +41,7 @@ class MqttDevice(MQTT):
         self.mqtt_client.loop_stop()
 
     def find_devices(self, topics, num_of_streams):
-        """If
+        """Finds online devices
 
         :param topics: Topics to subscribe too
         :param num_of_streams: How many streams to read

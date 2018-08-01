@@ -41,12 +41,8 @@ def main():
         sys.exit()
 
 
-# Get a device name from the user
-name = input("Please provide a name for the device: ")
-
 # Create a client object with device seed, use a seed generator to get a seed.
-client = Client(device_name=name,
-                device_type='sensor',
+client = Client(device_type='sensor',
                 seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY')
 
 # Prints client details to console

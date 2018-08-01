@@ -11,14 +11,14 @@ import copy
 
 class MQTT(object):
 
-    def __init__(self, name, network_name, broker):
+    def __init__(self, network_name, broker):
 
         # MQTT broker, default broker is locally running
         self.broker = broker
         self.mqtt_port = 1883
 
         # MQTT client
-        self.mqtt_client = mqtt.Client(name)
+        self.mqtt_client = mqtt.Client()
 
         # Name of network
         self.network_name = network_name
@@ -30,28 +30,30 @@ class MQTT(object):
         # Saves messages from MQTT
         self.messages = list()
 
-    def get_single_message(self, topic):
+    def get_single_message(self, topic, wait_seconds=5):
         """Returns a message from a topic where only 1 message will be posted.
         (For example, finding a device tag as only the tag is getting posted here.)
 
+        :param wait_seconds: time to check MQTT messages
         :param topic: A topic with 'device_type/device_name/' format
         :return: Tag
         """
         while True:
-            messages = self.get_message(topic, seconds=5)
+            messages = self.get_message(topic, seconds=wait_seconds)
             if messages:
                 m = messages[0]
                 return m
 
-    def find_messages(self, topic):
+    def find_messages(self, topic, wait_seconds=30):
         """Retrieves a list of messages from a topic, where different messages will be posted
         (For example, at the network level there are several device types that are posted here)
 
+        :param wait_seconds: time to check MQTT messages
         :return: A list of messages
         """
 
         m = set()
-        messages = self.get_message(topic, seconds=30)
+        messages = self.get_message(topic, seconds=wait_seconds)
         if messages:
             for message in messages:
                 m.add(message)

@@ -1,5 +1,5 @@
 """
-broker.py
+mqtt_broker.py
 
 MQTT class for broker devices
 """
@@ -10,10 +10,12 @@ from iota import Tag
 
 class MqttBroker(MQTT):
 
-    def __init__(self, name, network_name, broker):
+    def __init__(self, network_name, broker):
 
         # MQTT broker parameters
-        super(MqttBroker, self).__init__(name, network_name, broker)
+        super(MqttBroker, self).__init__(network_name, broker)
+
+        self.device_name = 'broker'
 
         # Saves devices
         self.devices = list()
@@ -31,6 +33,7 @@ class MqttBroker(MQTT):
                 types = self.find_messages(self.network_topic)
             if not types:
                 print("No devices online...")
+                return self.devices
             else:
                 for device_type in types:
                     topic = self.network_topic + device_type + '/'

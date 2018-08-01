@@ -45,11 +45,10 @@ def main(tags):
         sys.exit()
 
 
-device_name, device_list, streams = get_user_input()
+device_list, streams = get_user_input()
 
 # Create a client object with seed of device
-client = Client(device_name=device_name,
-                device_type='monitor',
+client = Client(device_type='monitor',
                 seed=b'BTPPLUVESQQYZCFYCDZVD9RXHAHTSCIBTMRVQCONZTKQMVLDPGY9HAOTH9NBPFANAEOFLEZIRNTZZVKQY')
 
 # Prints client details to console

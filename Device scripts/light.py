@@ -51,11 +51,10 @@ def main(tags):
 
 
 # Get a device name from the user
-device_name, device_list, streams = get_user_input()
+device_list, streams = get_user_input()
 
 # Class used to query tangle data,
-client = Client(device_name=device_name,
-                device_type='light',
+client = Client(device_type='light',
                 seed=b'UKFZVYF99PJTYMOXFIBPQVLB9EGEC9VWVOOZTPAOWVZSURREHLKORIGFVBMQYJGGNC9GBNHZKDIDPBXAS')
 
 # Prints client details to console
