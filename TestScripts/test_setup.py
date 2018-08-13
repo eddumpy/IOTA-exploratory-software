@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 
 
-def test_setup():
+def test_setup(number_of_devices):
 
     # Setting up a client device
     client = Client(device_type='test_device',
