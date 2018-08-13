@@ -36,7 +36,7 @@ def main(tags):
             print("State: ", system_state)
 
             # Post state of device to tangle
-            client.post_to_tangle(system_state)
+            client.post_to_tangle(system_state, verbose=True)
 
             # Wait period
             client.publish(minutes=1)

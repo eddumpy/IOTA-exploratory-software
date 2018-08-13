@@ -22,7 +22,7 @@ def main():
 
             # Generate random number as the data to store in the tangle and convert to Trytestring
             sensor_data = random.randint(0, 100)
-            print("Data reading: ", sensor_data)
+            print("Random number: ", sensor_data)
 
             # Posts encrypted data to tangle
             client.post_to_tangle(sensor_data, verbose=True)
@@ -43,10 +43,13 @@ def main():
 
 # Create a client object with device seed, use a seed generator to get a seed.
 client = Client(device_type='sensor',
-                seed=b'GYZHOINRXAPJOIUIPEZATMDDYNQQZITJQTWMFDAUPWWAQNAURLGXQOOVQMAJUICWXIEIWDIBPGUQPBRMY')
+                reuse_address=True)
+                #iota_node="http://localhost:14700",
+                #route_pow=False)
 
 # Prints client details to console
 print(client)
 
 if __name__ == '__main__':
+    # Run main
     main()

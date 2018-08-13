@@ -20,16 +20,17 @@ def main(tags):
 
             # Code used to query tangle
             transactions = client.get_transactions(tags, count=len(tags) * 10)
-
-            # Gets transaction data from list of transaction objects
             txs_data = [int(client.get_transaction_data(tx)) for tx in transactions]
+
+            print("Decrypted data", txs_data[0])
 
             # Calculates the mean of found transactions
             data_average = sum(txs_data) / float(len(txs_data))
+
             print("Average: ", data_average)
 
             # Posts average of data
-            client.post_to_tangle(data_average)
+            client.post_to_tangle(data_average, verbose=True)
 
             # Wait for next data collection
             client.publish(minutes=1)
