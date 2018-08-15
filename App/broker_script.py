@@ -1,5 +1,5 @@
 """
-app.py
+broker_script.py
 
 Run this script to print out a network summary
 
@@ -15,13 +15,14 @@ def main():
     while True:
 
         # Used for testing
-        de_devices = [['sensor', 'sensor1', Tag(b'KSUOJULM9TWGSKLWQDQS9DUGOPS')],
-                   ['sensor', 'sensor2', Tag(b'DSSSXPQCTPYAIUCOU9UJKRNZTPU')]]
+        # devices = [['sensor', 'sensor1', Tag(b'KSUOJULM9TWGSKLWQDQS9DUGOPS')],
+        #           ['sensor', 'sensor2', Tag(b'DSSSXPQCTPYAIUCOU9UJKRNZTPU')],
+        #           ['sensor', 'sensor3', Tag(b'ZK9HCRK9LFCDDONKBSUBYYDGLWQ')]]
 
         # Use MQTT to find devices
-        devices = client.mqtt.find_devices() + de_devices
+        devices = client.mqtt.find_devices()
 
-        devices_data, attributes = client.get_device_data(devices, last_tx=False, last_reading=False, total_txs=False)
+        devices_data, attributes = client.get_device_data(devices)
 
         final_devices = client.query_device_data(devices_data)
 
@@ -39,6 +40,7 @@ def main():
 
 client = BrokerClient(device_type='broker',
                       seed=b'SEDUAWZ9CKBMVEOZ9FCFGFZLCHMIPROBURLEQTYLURFDHOKRCZDNKPNSQTRIBQFQLOAQGIZGYNZNIOOYI',
+                      device_name='broker',
                       route_pow=False)
 
 if __name__ == '__main__':
