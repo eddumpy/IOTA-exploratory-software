@@ -24,7 +24,8 @@ class Client:
     def __init__(self,
                  # Device details
                  device_type,  # Device type -> String
-                 seed,  # IOTA Seed -> String
+                 seed='',  # IOTA Seed -> String
+                 device_name='',
                  reuse_address=True,  # If you want to reuse addresses -> Bool
 
                  #  MQTT configuration
@@ -44,7 +45,13 @@ class Client:
         self.mqtt = MqttDevice(network_name=self.network_name, broker=mqtt_broker)
 
         self.device_type = device_type  # Device type
-        self.device_name = self.create_name(check_network=True)  # Name of device
+
+        if device_name == '':
+            self.device_name = self.create_name(check_network=False)  # Name of device
+        elif device_name == 'broker':
+            self.device_name = device_name
+        else:
+            self.device_name = device_name
 
         # Creates a random Tag to classify current data stream
         self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
@@ -81,27 +88,37 @@ class Client:
                 self.create_name()
         return name
 
-    def generate_address(self):
+    def generate_address(self, level):
         """Gets a new unused address for each transaction, with security level 2
 
         :return: Address of device
         """
+        try:
+            # Finds the next unused address
+            print("Generating address...")
+            addresses = self.api.get_new_addresses(count=None, security_level=level)['addresses']
+            print("Found an address: ", addresses[0])
+            return addresses[0]
+        except iota.BadApiResponse:
+            print("Address generation error...")
+            return None
 
-        # Finds the next unused address
-        print("Generating address...")
-        addresses = self.api.get_new_addresses(count=None, security_level=1)['addresses']
-        print("Found an address: ", addresses[0])
-        return addresses[0]
-
-    def post_to_tangle(self, data, verbose=False):
+    def post_to_tangle(self, data, address_level=1, encrypt=True, verbose=False):
         """Posts data to the tangle to a randomly generated address
 
         :param data: Data to be stored on the tangle
+        :param address_level: Security level of address, 1-3
+        :param encrypt: Option to encrypt Encrypt data
         :param verbose: Prints out the transaction process if True
+        :return elapsed time: Time of the transaction
         """
 
         # Encrypt data before being posted to tangle
-        encrypted_data = self.crypto.encrypt(data)
+        if encrypt:
+            data = self.crypto.encrypt(data)
+            tryte_string = TryteString.from_bytes(data)
+        else:
+            tryte_string = TryteString.from_string(str(data))
 
         # Monitor how long the transaction takes
         start = time.time()
@@ -109,9 +126,13 @@ class Client:
         # Gets an appropriate address for sending transaction
         if self.reuse_address:
             if self.address is '':
-                self.address = self.generate_address()  # Generates a new unused address
+                self.address = self.generate_address(address_level)  # Generates a new unused address
         else:
-            self.address = self.generate_address()
+            self.address = self.generate_address(address_level)
+
+        # Checks address to ensure there was no problem
+        if self.address is None:
+            self.post_to_tangle(data)
 
         if verbose:
             print("Transaction Initialised...")
@@ -126,14 +147,19 @@ class Client:
                         address=self.address,
                         value=0,
                         tag=self.tag,
-                        message=TryteString.from_bytes(encrypted_data),
+                        message=tryte_string,
                     ),
                 ],
             )
 
+            # Times of transaction
+            end = time.time()
+            elapsed_time = end - start
+
             if verbose:
-                end = time.time()
-                print("Transaction complete \nElapsed time: ", end - start, " seconds.")
+                print("Transaction complete \nElapsed time: ", elapsed_time, " seconds.")
+
+            return elapsed_time
 
         except iota.BadApiResponse:
             print("Transaction failed, retrying...")
@@ -169,10 +195,11 @@ class Client:
 
             return ordered_transactions
 
-    def get_transaction_data(self, transaction):
+    def get_transaction_data(self, transaction, decrypt=True):
         """Gets the SignatureMessageFragment of a transaction
 
         :param transaction: Transaction object
+        :param decrypt: decrypt data
         :return: Transaction data inside the transaction
         """
 
@@ -180,8 +207,9 @@ class Client:
         message = transaction.signature_message_fragment.decode()
 
         # Decrypt data
-        decrypted_data = self.crypto.decrypt(message)
-        return decrypted_data
+        if decrypt:
+            message = self.crypto.decrypt(message)
+        return message
 
     def publish(self, minutes):
         for i in range(0, (30 * minutes)):

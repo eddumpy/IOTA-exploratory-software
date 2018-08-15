@@ -44,10 +44,11 @@ class MQTT(object):
                 m = messages[0]
                 return m
 
-    def find_messages(self, topic, wait_seconds=30):
+    def find_messages(self, topic, wait_seconds=60):
         """Retrieves a list of messages from a topic, where different messages will be posted
         (For example, at the network level there are several device types that are posted here)
 
+        :param topic: Topic to subscribe to
         :param wait_seconds: time to check MQTT messages
         :return: A list of messages
         """

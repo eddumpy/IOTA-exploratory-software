@@ -9,15 +9,15 @@ import time
 
 class BrokerClient(Client):
 
-    def __init__(self, device_name, device_type, seed, reuse_address=True,
+    def __init__(self, device_type, seed, device_name='', reuse_address=True,
                  mqtt_broker="localhost", route_pow=True,
                  iota_node='https://nodes.devnet.thetangle.org:443',
                  pow_node='http://localhost:14265'):
 
-        super(BrokerClient, self).__init__(device_name, device_type, seed, reuse_address, mqtt_broker, route_pow,
+        super(BrokerClient, self).__init__(device_type, seed, device_name, reuse_address, mqtt_broker, route_pow,
                                            iota_node, pow_node)
 
-        self.mqtt = MqttBroker(name=self.device_name, network_name=self.network_name, broker=mqtt_broker)
+        self.mqtt = MqttBroker(network_name=self.network_name, broker=mqtt_broker)
 
     def check_device_status(self, tag):
         """Checks
@@ -37,7 +37,7 @@ class BrokerClient(Client):
             accumulate_diff = 0
         else:
             accumulate_diff = 0
-            for i in range(4, 0, -1):
+            for i in range(len(timestamps) - 1, 0, -1):
                 timestamp_diff = ((datetime.fromtimestamp(int(timestamps[i]))
                                    - datetime.fromtimestamp(int(timestamps[i - 1]))).total_seconds())
                 accumulate_diff += timestamp_diff
@@ -61,14 +61,14 @@ class BrokerClient(Client):
                 device_status = 'Online'
         return device_status
 
-    def get_device_data(self, devices, tag=True, status=(True, ''),
-                        last_tx=(True, ''), last_reading=(True, ''), total_txs=(True, '')):
+    def get_device_data(self, devices, tag=True, status=True,
+                        last_tx=True, last_reading=True, total_txs=True):
 
         # Default attributes for table
         default_attributes = ['Type', 'Name']
 
         # Uses the arguments to create a list of attributes
-        arguments = [tag[0], status[0], last_tx[0], last_reading[0], total_txs[0]]
+        arguments = [tag, status, last_tx, last_reading, total_txs]
         extra_attributes = ['Tag', 'Status', 'Last Transaction', 'Last Reading', 'Total transactions']
 
         # Final attributes list

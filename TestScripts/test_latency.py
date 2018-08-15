@@ -1,11 +1,11 @@
+"""
+Tests the latency of varying message sizes through a given number of devices
+"""
+
 from Deployment.Client.client import Client
 import time
 import random
 import string
-
-
-def utf8len(s):
-    return len(s.encode('utf-8'))
 
 
 def propagate_message(tag):

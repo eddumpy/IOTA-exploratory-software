@@ -31,7 +31,6 @@ class MqttDevice(MQTT):
             self.publish_topics = [device_details[0] + '/',
                                    device_details[0] + '/' + device_details[1] + '/',
                                    device_details[0] + '/' + device_details[1] + '/' + device_details[2] + '/']
-            # device_details[0] + '/' + 'broker/'
 
         self.mqtt_client.connect(self.broker, self.mqtt_port)
         self.mqtt_client.loop_start()
@@ -88,6 +87,7 @@ class MqttDevice(MQTT):
             while not tag_found:
                 tag = self.get_single_message(topic)
                 if tag not in self.tags_found:
+                    print('Found tag: ', tag)
                     self.tags_found.append(tag)
                     tag_found = True
 

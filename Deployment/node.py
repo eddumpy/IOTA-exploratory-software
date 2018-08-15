@@ -43,7 +43,9 @@ class Node:
                     )
             else:
                 self.api = Iota(self.iota_node, seed)
-                self.test_node()
+
+                # Uncomment to test node after creating an API
+                # self.test_node()
             return self.api
 
         except ConnectionRefusedError as e:
