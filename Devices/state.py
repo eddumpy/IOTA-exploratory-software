@@ -56,8 +56,7 @@ def main(tags):
 device_list, streams = get_user_input()
 
 # Class used to query tangle data,
-client = Client(device_type='state',
-                seed=b'FDUDNNKTWT9OJXMSXIYX9HUTTLCRJTW99UODHCBHAPQKSEBIOPKNCKNEBQKSWG9QTARTRKJXWDWXCW9FG')
+client = Client(device_type='state')
 
 # Prints client details to console
 print(client)

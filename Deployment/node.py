@@ -2,11 +2,6 @@
 node class:
 
 Used to create an API instance to interact with the tangle
-Default URIs are provided, but can be changed if needed.
-
-Current set up connects to a public Iota devnet node and
-uses a local running node with no neighbours to provide the
-proof of work.
 """
 
 from iota import Iota
@@ -28,8 +23,8 @@ class Node:
     def create_api(self, seed, route_pow) -> Iota:
         """Creates an Iota object to interact with the tangle
 
-        :param seed: The seed of the device, currently uses a random seed.
-        :param route_pow: Boolean to provide whether you want to provide PoW assistance from a local node.
+        :param seed: The seed of the device
+        :param route_pow: Boolean to state whether PoW is outsourced
         :return: An Iota object
         """
         try:

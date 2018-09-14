@@ -34,7 +34,7 @@ def main(tags):
             print(light_state)
 
             # Post state of device to tangle
-            client.post_to_tangle(light_state)
+            client.post_to_tangle(light_state, verbose=True)
 
             # Wait period
             client.publish(minutes=1)
@@ -54,8 +54,7 @@ def main(tags):
 device_list, streams = get_user_input()
 
 # Class used to query tangle data,
-client = Client(device_type='light',
-                seed=b'UKFZVYF99PJTYMOXFIBPQVLB9EGEC9VWVOOZTPAOWVZSURREHLKORIGFVBMQYJGGNC9GBNHZKDIDPBXAS')
+client = Client(device_type='light')
 
 # Prints client details to console
 print(client)

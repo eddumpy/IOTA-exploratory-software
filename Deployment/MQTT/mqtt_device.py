@@ -1,6 +1,6 @@
 """mqtt_device.py
 
-MQTT for device scripts
+Sub-class of MQTT class for device scripts
 """
 
 from Deployment.MQTT.mqtt import MQTT
@@ -24,6 +24,7 @@ class MqttDevice(MQTT):
     def publish_device(self, device_details):
         """Publishes messages to the devices publish_topics
 
+        :param device_details: List of details of the device
         """
 
         # Creates publish topics
@@ -32,6 +33,7 @@ class MqttDevice(MQTT):
                                    device_details[0] + '/' + device_details[1] + '/',
                                    device_details[0] + '/' + device_details[1] + '/' + device_details[2] + '/']
 
+        # Connects to broker and publishes details to topics
         self.mqtt_client.connect(self.broker, self.mqtt_port)
         self.mqtt_client.loop_start()
         for x in range(1, 4):
@@ -50,6 +52,7 @@ class MqttDevice(MQTT):
         # Describes state of found devices
         all_devices_found = False
 
+        # Find devices
         while not all_devices_found:
             for topic in topics:
                 messages = self.get_message(topic)
@@ -63,8 +66,12 @@ class MqttDevice(MQTT):
         return self.found_devices
 
     def find_device_tags(self, devices, num_of_streams, read_from):
-        """Finds data streams from devices in network
+        """Finds data streams by finding tags of devices in the network
 
+        :param devices: Names of devices
+        :param num_of_streams: How many streams to find
+        :param read_from: What device to read from
+        :return: List of found tags
         """
 
         if not devices:
@@ -91,6 +98,7 @@ class MqttDevice(MQTT):
                     self.tags_found.append(tag)
                     tag_found = True
 
+        # Prints which devices are being read
         print("Reading data streams from these devices: ", " ".join(devices))
         tags = [Tag(tag) for tag in self.tags_found]
         return tags

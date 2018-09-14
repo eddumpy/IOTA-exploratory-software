@@ -10,7 +10,7 @@ Exploratory software is developed to review the DLT IOTA. It is built for my end
 
 * MQTT is also used for devices to discover data streams by sharing tags
 
-* Support flexible node configurations
+* Supports flexible node configurations
 
 ## Dependencies 
 

@@ -1,7 +1,7 @@
 """
 mqtt.py
 
-
+MQTT object provides methods to get messages from mqtt topics
 """
 
 import paho.mqtt.client as mqtt
@@ -34,10 +34,11 @@ class MQTT(object):
         """Returns a message from a topic where only 1 message will be posted.
         (For example, finding a device tag as only the tag is getting posted here.)
 
-        :param wait_seconds: time to check MQTT messages
-        :param topic: A topic with 'device_type/device_name/' format
-        :return: Tag
+        :param topic: A topic with 'network_name/device_type/device_name/' format
+        :param wait_seconds: Time given to check MQTT topic
+        :return: The message found on the given topic
         """
+
         while True:
             messages = self.get_message(topic, seconds=wait_seconds)
             if messages:
@@ -48,8 +49,8 @@ class MQTT(object):
         """Retrieves a list of messages from a topic, where different messages will be posted
         (For example, at the network level there are several device types that are posted here)
 
-        :param topic: Topic to subscribe to
-        :param wait_seconds: time to check MQTT messages
+        :param topic: Topic with either 'network_name/device_type/' or 'network_name/' format
+        :param wait_seconds: Time to check MQTT messages
         :return: A list of messages
         """
 
@@ -74,14 +75,19 @@ class MQTT(object):
         time.sleep(seconds)
         self.mqtt_client.loop_stop()
 
+        # Copy messages
         messages = copy.deepcopy(self.messages)
+
+        # Resets variable to empty
         self.messages = []
         return messages
 
     def on_message(self, client, userdata, message):
-        """Callback function for MQTT
+        """Callback function for MQTT, used to retrieve messages from MQTT topics
         """
 
         # Message from device
         device_message = str(message.payload.decode("utf-8"))
+
+        # Save to object variable
         self.messages.append(device_message)
