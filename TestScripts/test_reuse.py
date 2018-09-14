@@ -32,11 +32,8 @@ def test_reuse(number_of_transactions, average_over, reuse):
     return results
 
 
-#result_reuse = test_reuse(10, 5, True)
-#result_no_reuse = test_reuse(10, 5, False)
-
-result_reuse = [20.431574487686156, 28.76900773048401, 16.073536586761474, 17.513502645492554, 38.35531964302063, 25.098815536499025, 18.038471460342407, 16.520094776153563, 29.765741539001464, 19.796921014785767]
-result_no_reuse = [24.472752141952515, 31.45073547363281, 32.13733620643616, 27.993191242218018, 43.77975959777832, 36.96368618011475, 42.38713183403015, 46.8346243383656, 35.16887526512146, 48.273162603378296]
+result_reuse = test_reuse(10, 5, True)
+result_no_reuse = test_reuse(10, 5, False)
 
 x = np.arange(0, len(result_reuse))
 plt.plot(x, result_reuse, color="blue", label="Reuse")

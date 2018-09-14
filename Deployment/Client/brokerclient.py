@@ -1,3 +1,9 @@
+"""brokerclient.py
+
+A sub-class of the Client class, used for gathering a network summary for the broker script.
+"""
+
+
 from Deployment.MQTT.mqtt_broker import MqttBroker
 from Deployment.Client.client import Client
 
@@ -9,30 +15,32 @@ import time
 
 class BrokerClient(Client):
 
-    def __init__(self, device_type, seed, device_name='', reuse_address=True,
+    def __init__(self, device_type, network_name="network", seed='', device_name='', encrypt=True, reuse_address=True,
                  mqtt_broker="localhost", route_pow=True,
                  iota_node='https://nodes.devnet.thetangle.org:443',
                  pow_node='http://localhost:14265'):
 
-        super(BrokerClient, self).__init__(device_type, seed, device_name, reuse_address, mqtt_broker, route_pow,
-                                           iota_node, pow_node)
+        super(BrokerClient, self).__init__(device_type, network_name, seed, device_name, encrypt, reuse_address,
+                                           mqtt_broker, route_pow, iota_node, pow_node)
 
+        # Uses the broker MQTT object instead of device MQTT object
         self.mqtt = MqttBroker(network_name=self.network_name, broker=mqtt_broker)
 
     def check_device_status(self, tag):
-        """Checks
+        """Checks status of a device by using its tag
 
-        :param tag: Tag of a device
-        :return:
+        :param tag: Tag of a device -> String
+        :return: status of the device -> String
         """
 
-        # Checks the data
+        # Checks the data from the tag
         transactions = self.get_transactions(tags=[tag], count=5)
         tx_data = [self.get_transaction_data(transaction) for transaction in transactions]
 
-        # Checks the timestamps
+        # Checks the timestamps of found transactions
         timestamps = self.get_timestamps(transactions, as_int=True)
 
+        # Checks the most recent transactions for faults
         if len(timestamps) <= 1:
             accumulate_diff = 0
         else:
@@ -48,7 +56,8 @@ class BrokerClient(Client):
                                        datetime.fromtimestamp(int(timestamps[len(timestamps) - 1])))
                                        .total_seconds()) / 60
 
-        # Checks to see if device is online or offline
+        # Checks to see if device is online or offline, if device has
+        # not sent a transaction in 30 minutes it is offline
         if time_since_last_transaction > 30:
             device_status = 'Offline'
         else:
@@ -61,8 +70,17 @@ class BrokerClient(Client):
                 device_status = 'Online'
         return device_status
 
-    def get_device_data(self, devices, tag=True, status=True,
-                        last_tx=True, last_reading=True, total_txs=True):
+    def get_device_data(self, devices, tag=True, status=True, last_tx=True, last_reading=True, total_txs=True):
+        """Gets the device data from its tag
+
+        :param devices: List of devices
+        :param tag: Bool to include tag in table
+        :param status: Bool to include status in table
+        :param last_tx: Bool to include last tx in table
+        :param last_reading: Bool to include last_reading in table
+        :param total_txs: Bool to include total txs in table
+        :return: devices, attributes -> list of devices and attributes, used to create a table
+        """
 
         # Default attributes for table
         default_attributes = ['Type', 'Name']
@@ -101,16 +119,14 @@ class BrokerClient(Client):
         return devices, attributes
 
     @staticmethod
-    def query_device_data(devices, status=None):
-        if status is not None:
-            updated_devices = [device for device in devices if status in device]
-            return updated_devices
-        else:
-            return devices
-
-    @staticmethod
     def create_table(devices, attributes):
-        # Creates table
+        """Creates table with list of devices given
+
+        :param devices: List of device details
+        :param attributes: list of attributes to include in table
+        :return: Table of devices
+        """
+
         table = PrettyTable(attributes)
         for device in devices:
             table.add_row(device)
@@ -118,6 +134,12 @@ class BrokerClient(Client):
 
     @staticmethod
     def get_timestamps(transactions, as_int=False):
+        """Gets timestamps from a list of transactions
+
+        :param transactions: List of transactions to get timestamp
+        :param as_int: Get timestamps as a unix timestamp
+        :return: List of timestamps
+        """
 
         timestamps = [tx.timestamp for tx in transactions]
 

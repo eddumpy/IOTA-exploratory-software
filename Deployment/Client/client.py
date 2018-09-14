@@ -2,10 +2,7 @@
 client.py
 
 Contains the Client class, which is used as the core component for deployment. All deployment settings can be
-passed through when creating a Client object, enabling flexibility.
-
-Uses MQTT to communicate with other devices
-
+passed through when creating a Client object.
 """
 
 from iota import Transaction, ProposedTransaction, TryteString, Tag
@@ -21,39 +18,31 @@ import string
 
 class Client:
 
-    def __init__(self,
-                 # Device details
-                 device_type,  # Device type -> String
-                 seed='',  # IOTA Seed -> String
-                 device_name='',
-                 reuse_address=True,  # If you want to reuse addresses -> Bool
-
-                 #  MQTT configuration
-                 mqtt_broker="localhost",  # broker for MQTT communication -> String
-
-                 # Iota node configuration
-                 route_pow=True,  # If you wish to route the PoW to a node -> Bool
-                 iota_node='https://nodes.devnet.thetangle.org:443',  # URI of IOTA node -> String
-                 pow_node='http://localhost:14265'):  # Uri of PoW node -> String
+    def __init__(self, device_type, network_name="network", seed='', device_name='', encrypt=True, reuse_address=True,
+                 mqtt_broker="localhost", route_pow=True, iota_node='https://nodes.devnet.thetangle.org:443',
+                 pow_node='http://localhost:14265'):
 
         # IOTA api, created through the Node class
         self.api = Node(seed, iota_node, route_pow, pow_node).api
 
-        self.network_name = 'network'  # Name of network
+        # Name of network
+        self.network_name = network_name
 
         # MQTT client
         self.mqtt = MqttDevice(network_name=self.network_name, broker=mqtt_broker)
 
-        self.device_type = device_type  # Device type
+        # Device type
+        self.device_type = device_type
 
+        # Name of device
         if device_name == '':
-            self.device_name = self.create_name(check_network=False)  # Name of device
+            self.device_name = self.create_name(check_network=False)
         elif device_name == 'broker':
             self.device_name = device_name
         else:
             self.device_name = device_name
 
-        # Creates a random Tag to classify current data stream
+        # Creates a random Tag to classify current data stream, as a string and as an IOTA tag
         self.tag_string = ''.join(random.choice(string.ascii_uppercase + '9') for _ in range(27))
         self.tag = Tag(self.tag_string)
 
@@ -69,6 +58,7 @@ class Client:
 
         # Class used to encrypt and decrypt data
         self.crypto = Crypto()
+        self.encrypt = encrypt
 
     def __str__(self):
         return "Network name: " + self.network_name + "\nDevice type: " + self.device_type \
@@ -77,25 +67,31 @@ class Client:
     def create_name(self, check_network=False):
         """Creates a name for the device
 
+        :param: check networks for duplicate names if True
         :return: name of device
         """
+
         name = input("Please provide a name for the device: ")
+
+        if name == '':
+            name = 'unknown ' + self.device_type
 
         if check_network:
             names_in_network = self.mqtt.find_messages(topic=self.network_name + '/' + self.device_type + '/')
             if name in names_in_network:
                 print("Name already used, please provide a different name.")
-                self.create_name()
+                name = self.create_name()
         return name
 
     def generate_address(self, level):
-        """Gets a new unused address for each transaction, with security level 2
+        """Gets a new unused address when called
 
-        :return: Address of device
+        :param: Address level
+        :return: Newly generated unused address
         """
         try:
             # Finds the next unused address
-            print("Generating address...")
+            # print("Generating address...")
             addresses = self.api.get_new_addresses(count=None, security_level=level)['addresses']
             print("Found an address: ", addresses[0])
             return addresses[0]
@@ -103,36 +99,37 @@ class Client:
             print("Address generation error...")
             return None
 
-    def post_to_tangle(self, data, address_level=1, encrypt=True, verbose=False):
+    def post_to_tangle(self, data, mwm=14, address_level=1, verbose=False):
         """Posts data to the tangle to a randomly generated address
 
         :param data: Data to be stored on the tangle
+        :param mwm: minimum weight magnitude for iota node, check default mwm of network
         :param address_level: Security level of address, 1-3
-        :param encrypt: Option to encrypt Encrypt data
         :param verbose: Prints out the transaction process if True
         :return elapsed time: Time of the transaction
         """
 
         # Encrypt data before being posted to tangle
-        if encrypt:
+        if self.encrypt:
             data = self.crypto.encrypt(data)
             tryte_string = TryteString.from_bytes(data)
         else:
             tryte_string = TryteString.from_string(str(data))
 
-        # Monitor how long the transaction takes
+        # Tracks how long the transaction takes
         start = time.time()
 
         # Gets an appropriate address for sending transaction
         if self.reuse_address:
             if self.address is '':
-                self.address = self.generate_address(address_level)  # Generates a new unused address
+                # Generates a new unused address
+                self.address = self.generate_address(address_level)
         else:
             self.address = self.generate_address(address_level)
 
         # Checks address to ensure there was no problem
         if self.address is None:
-            self.post_to_tangle(data)
+            self.post_to_tangle(data, mwm, address_level, verbose)
 
         if verbose:
             print("Transaction Initialised...")
@@ -150,9 +147,10 @@ class Client:
                         message=tryte_string,
                     ),
                 ],
+                min_weight_magnitude=mwm,
             )
 
-            # Times of transaction
+            # Time of transaction
             end = time.time()
             elapsed_time = end - start
 
@@ -163,19 +161,21 @@ class Client:
 
         except iota.BadApiResponse:
             print("Transaction failed, retrying...")
-            self.post_to_tangle(data)
+            self.post_to_tangle(data, mwm, address_level, verbose)
 
-    def get_transactions(self, tags, most_recent=True, count=10) -> [Transaction]:
+    def get_transactions(self, tags, most_recent=True, count=10):
         """Creates Transaction objects from the transaction trytes
 
         :param tags: List of tags
-        :param most_recent: whether you want most recent transactions or not
-        :param count: Specifies how many transactions you want given you want most recent transactions
+        :param most_recent: Whether you want returned the most recent transactions
+        :param count: Specifies how many transactions you want, 'most_recent' must be true, default is 10
         :return: List of Transaction objects
         """
 
+        # Get transaction hashes from tags
         transactions_hashes = self.api.find_transactions(tags=tags)['hashes']
 
+        # Checks list of transaction hashes is not empty
         if not transactions_hashes:
             print("No Transactions found, waiting for transactions...")
             time.sleep(60)
@@ -195,11 +195,10 @@ class Client:
 
             return ordered_transactions
 
-    def get_transaction_data(self, transaction, decrypt=True):
+    def get_transaction_data(self, transaction):
         """Gets the SignatureMessageFragment of a transaction
 
         :param transaction: Transaction object
-        :param decrypt: decrypt data
         :return: Transaction data inside the transaction
         """
 
@@ -207,8 +206,9 @@ class Client:
         message = transaction.signature_message_fragment.decode()
 
         # Decrypt data
-        if decrypt:
+        if self.encrypt:
             message = self.crypto.decrypt(message)
+
         return message
 
     def publish(self, minutes):
@@ -220,9 +220,9 @@ class Client:
         """Sorts data by the oldest to the newest transactions
 
         :param transactions: List of transactions
-        :param most_recent: Boolean, True if you want the most recent transactions, False if not.
-        :param count: If most recent is True, value of count (Int) provides that many transactions.
-        :return: returns the data
+        :param most_recent: Boolean, True if you want the most recent transactions
+        :param count: If most recent is True, value of count returns that many transactions.
+        :return: Returns ordered list of transactions
         """
 
         # Stores a list of timestamps and transaction objects in tuples
